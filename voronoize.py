@@ -62,10 +62,12 @@ display_img(binimg)
 
 features = np.where(binimg == 0)
 
+outimg = cv2.cvtColor(binimg, cv2.COLOR_GRAY2BGR)
+
 pts = random.sample(list(zip(features[1], features[0])), 5000)
 vor = Voronoi(pts)
 
-vimg = np.full((img.shape[0], img.shape[1], 3), (255, 255, 255), np.uint8)
+#vimg = np.full((img.shape[0], img.shape[1], 3), (255, 255, 255), np.uint8)
 #display_img(vimg)
 
 #######
@@ -75,7 +77,7 @@ lines = lines_for_voronoi(vor, img_w, img_h)
 for a, b in lines:
     a = tuple(a.round().astype(np.int32))
     b = tuple(b.round().astype(np.int32))
-    cv2.line(vimg, a, b, (0, 0, 0))
+    cv2.line(outimg, a, b, (255, 0, 0))
 
 # see https://github.com/scipy/scipy/blob/v1.0.0/scipy/spatial/_plotutils.py
 
@@ -83,7 +85,7 @@ for a, b in lines:
 #     cv2.circle(vimg, tuple(p.round().astype(np.int32)), 5, (255, 0, 0), -1)
 
 #cv2.polylines(vimg, [lines_arr], False, (0, 0, 0))
-display_img(vimg)
+display_img(outimg)
 
 
 ######
