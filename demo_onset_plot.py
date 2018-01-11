@@ -8,19 +8,28 @@ win_s = 512                 # fft size
 hop_s = win_s // 2          # hop size
 
 if len(sys.argv) < 2:
-    print("Usage: %s <filename> [samplerate]" % sys.argv[0])
+    print("Usage: %s <filename> [samplerate] [max. read sec.]" % sys.argv[0])
     sys.exit(1)
 
 filename = sys.argv[1]
 
 samplerate = 0
-if len( sys.argv ) > 2: samplerate = int(sys.argv[2])
+max_read_sec = None
+if len(sys.argv) > 2: samplerate = int(sys.argv[2])
+if len(sys.argv) > 3: max_read_sec = int(sys.argv[3])
+
 
 s = source(filename, samplerate, hop_s)
 samplerate = s.samplerate
 o = onset("default", win_s, hop_s, samplerate)
 print('thresh', o.get_threshold())
-o.set_threshold(0.9)
+o.set_threshold(0.3)
+
+if max_read_sec:
+    max_read_samples = samplerate * max_read_sec
+    print('max read: %d sec, %d samples' % (max_read_sec, max_read_samples))
+else:
+    max_read_samples = None
 
 # list of onsets, in samples
 onsets = []
@@ -44,7 +53,7 @@ while True:
     desc.append(o.get_descriptor())
     tdesc.append(o.get_thresholded_descriptor())
     total_frames += read
-    if read < hop_s: break
+    if read < hop_s or (max_read_samples is not None and total_frames >= max_read_samples): break
 
 if True:
     # do plotting
