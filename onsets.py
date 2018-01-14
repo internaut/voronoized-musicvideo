@@ -16,7 +16,7 @@ def open_audio_source(input_wav):
     return s, samplerate
 
 
-def get_onsets(source, samplerate, onset_thresh, onset_ampl_window=10, max_read_sec=None):
+def get_onsets(source, samplerate, onset_thresh, onset_ampl_window=20, max_read_sec=None):
     """
     Get onset markers from `source` with `samplerate` using onset detection threshold `onset_thresh`,
     which is a value between [0, 1]. Optionally only read `max_read_sec` sec. from `source`.
@@ -45,24 +45,29 @@ def get_onsets(source, samplerate, onset_thresh, onset_ampl_window=10, max_read_
 
     # total number of frames read
     total_frames = 0
-    cur_onset_max_ampl = 0
-    #last_onset_hop = None
+    last_onset_hop = None
+    cur_hop = 0
     while True:
         samples, read = source()
         # new_maxes = (abs(samples.reshape(HOP_S // DOWNSAMPLE, DOWNSAMPLE))).max(axis=0)
         # allsamples_max.extend(new_maxes)
         ampl = o.get_descriptor()
         desc.append(ampl)
-        cur_onset_max_ampl = max(cur_onset_max_ampl, ampl)
 
         if o(samples):  # onset detected
-            print("onset at sec. %f with max. amplitude %f" % (o.get_last_s(), cur_onset_max_ampl))
+            print("onset at sec. %f" % o.get_last_s())
             onsets.append(o.get_last())
+            last_onset_hop = cur_hop
+
+        cur_hop += 1
+
+        if cur_hop - onset_ampl_window//2 == last_onset_hop:
+            cur_onset_max_ampl = max(desc[cur_hop-onset_ampl_window:cur_hop])
             onset_max_ampl.append(cur_onset_max_ampl)
-            cur_onset_max_ampl = 0
 
         # tdesc.append(o.get_thresholded_descriptor())
         total_frames += read
+
         if read < HOP_S or (max_read_samples is not None and total_frames >= max_read_samples): break
 
     onset_max_ampl = np.array(onset_max_ampl)
