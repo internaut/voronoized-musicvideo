@@ -9,5 +9,12 @@ January 2018, Markus Konrad (post at mkonrad dot net)
 
 ## Requirements
 
+Python: 
+
+* MoviePy
 * OpenCV
 * aubio
+
+System:
+
+* ffmpeg

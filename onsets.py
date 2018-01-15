@@ -100,10 +100,10 @@ def plot_onsets(onsets, onset_max_ampl, desc, samplerate):
     plt.show()
 
 
-
-source, samplerate = open_audio_source('audio/kiriloff-fortschritt-unmastered.wav')
-onsets, onset_max_ampl, desc = get_onsets(source, samplerate, 0.3, max_read_sec=10)
-plot_onsets(onsets, onset_max_ampl, desc, samplerate)
-
-onsets_sec = onsets / samplerate
-desc_times = [float(t) * HOP_S / samplerate for t in range(len(desc))]
+#
+# source, samplerate = open_audio_source('audio/kiriloff-fortschritt-unmastered.wav')
+# onsets, onset_max_ampl, desc = get_onsets(source, samplerate, 0.3, max_read_sec=10)
+# plot_onsets(onsets, onset_max_ampl, desc, samplerate)
+#
+# onsets_sec = onsets / samplerate
+# desc_times = [float(t) * HOP_S / samplerate for t in range(len(desc))]

@@ -1,5 +1,38 @@
 import cv2
 import numpy as np
+from moviepy.editor import VideoClip, AudioFileClip, AudioClip
+
+from onsets import open_audio_source, get_onsets
+
+
+CLIP_SEC = 10
+CLIP_FPS = 24
+CLIP_W = 640
+CLIP_H = 480
+
+source, samplerate = open_audio_source('audio/kiriloff-fortschritt-unmastered.wav')
+onsets, onset_max_ampl, _ = get_onsets(source, samplerate, 0.3, max_read_sec=CLIP_SEC)
+assert len(onsets) == len(onset_max_ampl)
+
+
+def make_video_frame(t):
+    frame = np.full((CLIP_W, CLIP_H, 3), (0, 0, 0), np.uint8)
+    return frame
+
+def make_audio_frame(t):
+    return 2 * [np.sin(440 * 2 * np.pi * t)]
+
+
+#audioclip = AudioFileClip('audio/kiriloff-fortschritt-unmastered.wav', fps=samplerate)
+audioclip = AudioClip(make_audio_frame, duration=CLIP_SEC)
+#audioclip.preview()
+
+clip = VideoClip(make_video_frame, duration=CLIP_SEC)
+clip.set_audio(audioclip)
+clip.write_videofile('out/moviepy_video_test.mp4', fps=CLIP_FPS)
+# clip.write_videofile('out/moviepy_video_test.mp4', fps=CLIP_FPS, audio='audio/kiriloff-fortschritt-unmastered.wav', audio_fps=samplerate)
+
+
 
 sec = 10
 fps = 24
