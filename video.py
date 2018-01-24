@@ -1,6 +1,6 @@
 import cv2
 import numpy as np
-from moviepy.editor import VideoClip, AudioFileClip, AudioClip
+from moviepy.editor import VideoClip, VideoFileClip, AudioFileClip, AudioClip
 
 from onsets import open_audio_source, get_onsets
 
@@ -42,10 +42,6 @@ def make_video_frame(t):
     cv2.circle(frame, center, int(round(r)), (255, 0, 0), -1)
 
     return frame
-
-
-clip = VideoClip(make_video_frame, duration=CLIP_SEC)
-clip.write_videofile('out/moviepy_video_test.mp4', fps=CLIP_FPS)
 
 
 audioclip = AudioFileClip('audio/kiriloff-fortschritt-unmastered.wav')
