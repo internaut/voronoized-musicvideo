@@ -2,6 +2,9 @@
 Taken and adapted from https://github.com/aubio/aubio/blob/master/python/demos/demo_onset_plot.py
 """
 
+import sys
+import pickle
+
 import numpy as np
 import aubio
 
@@ -11,6 +14,11 @@ HOP_S = WIN_S // 2  # hop size
 
 
 def open_audio_source(input_wav):
+    """
+    Open the audio source file `input_wav` and return a tuple with
+    - the aubio source object
+    - its samplerate
+    """
     s = aubio.source(input_wav, 0, HOP_S)
     samplerate = s.samplerate
     return s, samplerate
@@ -55,7 +63,7 @@ def get_onsets(source, samplerate, onset_thresh, onset_ampl_window=20, max_read_
         desc.append(ampl)
 
         if o(samples):  # onset detected
-            print("onset at sec. %f" % o.get_last_s())
+            print("> onset at sec. %f" % o.get_last_s())
             onsets.append(o.get_last())
             last_onset_hop = cur_hop
 
@@ -77,13 +85,11 @@ def get_onsets(source, samplerate, onset_thresh, onset_ampl_window=20, max_read_
     onset_max_norm = np.max(onset_max_ampl) or 1
     onset_max_ampl /= onset_max_norm    # normalize
 
-    # return onsets, desc, tdesc, allsamples_max
+    # return onsets, onset amplitudes, frame descriptors
     return np.array(onsets), onset_max_ampl, np.array(desc) #, np.array(allsamples_max)
 
 
-def plot_onsets(onsets, onset_max_ampl, desc, samplerate):
-    import matplotlib.pyplot as plt
-
+def plot_onsets(ax, onsets, onset_max_ampl, desc, samplerate):
     # allsamples_max = (allsamples_max > 0) * allsamples_max
     # allsamples_max_times = [float(t) * HOP_S / DOWNSAMPLE / samplerate for t in range(len(allsamples_max))]
 
@@ -92,18 +98,58 @@ def plot_onsets(onsets, onset_max_ampl, desc, samplerate):
     desc_plot = [d / desc_max for d in desc]
     for stamp, ampl in zip(onsets, onset_max_ampl):
         stamp /= float(samplerate)
-        plt.plot([stamp, stamp], [0, ampl], '-r', linewidth=3.0)
+        ax.plot([stamp, stamp], [0, ampl], '-r', linewidth=3.0)
 
-    plt.plot(desc_times, desc_plot, '-g')
-    plt.axis(ymin=0, ymax=max(desc_plot))
-    plt.xlabel('time (s)')
-    plt.show()
+    ax.plot(desc_times, desc_plot, '-g')
+    ax.axis(ymin=0, ymax=max(desc_plot))
+    ax.set_xlabel('time (s)')
 
 
-#
-# source, samplerate = open_audio_source('audio/kiriloff-fortschritt-unmastered.wav')
-# onsets, onset_max_ampl, desc = get_onsets(source, samplerate, 0.3, max_read_sec=10)
-# plot_onsets(onsets, onset_max_ampl, desc, samplerate)
-#
-# onsets_sec = onsets / samplerate
-# desc_times = [float(t) * HOP_S / samplerate for t in range(len(desc))]
+if __name__ == '__main__':
+    n_args = len(sys.argv)
+
+    if n_args < 3:
+        print('run script as: %s <audio input file> <onsets output pickle file> '
+              '[plot output file] [number of seconds to read]'
+              % sys.argv[0], file=sys.stderr)
+        exit(1)
+
+    audio_file, pickle_file = sys.argv[1:3]
+
+    if n_args >= 4:
+        plot_file = sys.argv[3]
+    else:
+        plot_file = None
+
+    if n_args >= 5:
+        max_read_sec = int(sys.argv[4])
+    else:
+        max_read_sec = None
+
+    print('reading audio file "%s" (%s)'
+          % (audio_file, 'complete' if max_read_sec is None else str(max_read_sec) + 'sec.'))
+    source, samplerate = open_audio_source(audio_file)
+
+    print('sample rate is %d' % samplerate)
+
+    print('detecting onsets...')
+    onsets, onset_max_ampl, frame_desc = get_onsets(source, samplerate, 0.3, max_read_sec=max_read_sec)
+    assert len(onsets) == len(onset_max_ampl)
+
+    print('writing output file to "%s"' % pickle_file)
+
+    with open(pickle_file, 'wb') as f:
+        pickle.dump((samplerate, onsets, onset_max_ampl, frame_desc), f)
+
+    if plot_file:
+        import matplotlib.pyplot as plt
+
+        print('plotting onsets...')
+        fig, ax = plt.subplots()
+        plot_onsets(ax, onsets, onset_max_ampl, frame_desc, samplerate)
+
+        plt.tight_layout()
+        print('saving plot output to "%s"' % plot_file)
+        fig.savefig(plot_file)
+        fig.show()
+
