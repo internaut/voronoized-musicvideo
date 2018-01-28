@@ -5,6 +5,7 @@ import numpy as np
 from moviepy.editor import VideoClip, VideoFileClip, AudioFileClip, AudioClip
 import moviepy.video.fx.all as vfx
 
+from voronoize import features_from_img, voronoi_from_feature_samples, lines_for_voronoi, draw_lines
 
 CLIP_SEC = 10
 CLIP_FPS = 24
@@ -29,20 +30,30 @@ class VideoFrameGenerator:
     def make_video_frame(self, t):
         fnum = round(t * self.fps)   # frame number
 
-        frame = self.input_clip.get_frame(t)
-        #frame = np.full((CLIP_H, CLIP_W, 3), (0, 0, 0), np.uint8)
+        in_frame = self.input_clip.get_frame(t)
 
-        onset_ampl = self.onset_frame_ampl.get(fnum, 0)
-        radd = onset_ampl * self.impulse
-        self.r = self.r + radd - self.decay
-        self.r = max(min(self.r, self.r_max), self.r_min)
-        self.r = int(round(self.r))
+        bin_frame, features = features_from_img(in_frame, blur_radius=5)
+        out_frame = cv2.cvtColor(bin_frame, cv2.COLOR_GRAY2BGR)
 
-        cv2.blur(frame, (self.r, self.r), frame)
+        vor = voronoi_from_feature_samples(features, 1000)
+        lines = lines_for_voronoi(vor, self.w, self.h)
+        draw_lines(out_frame, lines, (255, 0, 0))
 
-        #cv2.circle(frame, center, int(round(r)), (255, 0, 0), -1)
+        return out_frame
 
-        return frame
+        # #frame = np.full((CLIP_H, CLIP_W, 3), (0, 0, 0), np.uint8)
+        #
+        # onset_ampl = self.onset_frame_ampl.get(fnum, 0)
+        # radd = onset_ampl * self.impulse
+        # self.r = self.r + radd - self.decay
+        # self.r = max(min(self.r, self.r_max), self.r_min)
+        # self.r = int(round(self.r))
+        #
+        # cv2.blur(frame, (self.r, self.r), frame)
+        #
+        # #cv2.circle(frame, center, int(round(r)), (255, 0, 0), -1)
+        #
+        # return frame
 
 
 with open('tmp/onsets.pickle', 'rb') as f:
