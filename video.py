@@ -28,31 +28,45 @@ class VideoFrameGenerator:
         self.impulse = 30
         self.decay = 1  # linear decay of r per frame
 
-        self.vor_lines_alpha_decay_basefactor = 1.0
+        self.vor_lines_features_factor = 10000
+        self.vor_lines_alpha_decay_basefactor = 0.05
         self.vor_lines = []    # holds tuples (voronoi lines frame, lines mask, current alpha, alpha decay factor)
 
     def make_video_frame(self, t):
-        fnum = round(t * self.fps)   # frame number
+        fnum = int(round(t * self.fps))   # frame number
 
         in_frame = self.input_clip.get_frame(t)
 
         bin_frame, features = features_from_img(in_frame, blur_radius=5)
-        out_frame = cv2.cvtColor(bin_frame, cv2.COLOR_GRAY2BGR)
+        out_frame = cv2.cvtColor(bin_frame, cv2.COLOR_GRAY2BGR)   # use mask as output base
         out_frame = out_frame.astype(np.float) / 255
 
-        if fnum == 24:
-            vor = voronoi_from_feature_samples(features, 1000)
+        # out_frame = in_frame.astype(np.float) / 255        # use orig. frame as output base
+        # out_frame_mask = (255-bin_frame)[:, :, np.newaxis]    # use masked orig. frame as output base
+        # out_frame = out_frame_mask * (in_frame.astype(np.float) / 255)
+
+        onset_ampl = self.onset_frame_ampl.get(fnum, 0)
+
+        if onset_ampl > 0:
+            n_vor_features = int(round(self.vor_lines_features_factor * onset_ampl))
+            vor = voronoi_from_feature_samples(features, n_vor_features)
+
             lines = lines_for_voronoi(vor, self.w, self.h)
-            alpha_decay = self.vor_lines_alpha_decay_basefactor * 0.01
+            alpha_decay = self.vor_lines_alpha_decay_basefactor * (1.5-onset_ampl)
             vor_lines_frame = create_frame(self.w, self.h, dtype=np.float)
-            draw_lines(vor_lines_frame, lines, (1.0, 0, 0))
+            draw_lines(vor_lines_frame, lines, (1.0, 0, 0), lineType=cv2.LINE_AA)
+
             vor_lines_mask_indices = np.where(vor_lines_frame[:, :] != (0.0, 0.0, 0.0))[:2]
 
             self.vor_lines.append((vor_lines_frame, vor_lines_mask_indices, 1.0, alpha_decay))
 
         out_frame = self._update_voronoi_lines(out_frame)
         out_frame = out_frame * 255
-        return out_frame.astype(np.uint8)
+        out_frame = out_frame.astype(np.uint8)
+
+        #out_frame = cv2.GaussianBlur(out_frame, (5, 5), 0)
+
+        return out_frame
 
     def _update_voronoi_lines(self, frame):
         tmp_vor_lines = []
@@ -65,6 +79,8 @@ class VideoFrameGenerator:
             mask[mask_indices] = 1-alpha
 
             frame = alpha * lines_frame + mask[:, :, np.newaxis] * frame
+            # frame = cv2.GaussianBlur(alpha * lines_frame, (3, 3), 0)\
+            #       + cv2.GaussianBlur(mask, (3, 3), 0)[:, :, np.newaxis] * frame
 
             alpha -= alpha_decay
             if alpha > 0:
@@ -73,8 +89,8 @@ class VideoFrameGenerator:
         self.vor_lines = tmp_vor_lines
 
         # rescale each channel independently
-        for c in range(3):
-            frame[:, :, c] /= frame[:, :, c].max()
+        # for c in range(3):
+        #     frame[:, :, c] /= frame[:, :, c].max()
 
         return frame
 
