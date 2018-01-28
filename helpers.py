@@ -18,6 +18,10 @@ def draw_lines(img, lines, color, **kwargs):
         cv2.line(img, pt2tuple(a), pt2tuple(b), color, **kwargs)
 
 
+def create_frame(w, h):
+    return np.full((h, w, 3), (0, 0, 0), np.uint8)
+
+
 def pt2tuple(p):
     """Convert numpy array point to tuple (needed for OpenCV)"""
     return tuple(p.round().astype(np.int32))
