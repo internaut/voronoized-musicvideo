@@ -18,8 +18,8 @@ def draw_lines(img, lines, color, **kwargs):
         cv2.line(img, pt2tuple(a), pt2tuple(b), color, **kwargs)
 
 
-def create_frame(w, h):
-    return np.full((h, w, 3), (0, 0, 0), np.uint8)
+def create_frame(w, h, fill=(0, 0, 0), dtype=np.uint8):
+    return np.full((h, w, 3), fill, dtype=dtype)
 
 
 def pt2tuple(p):
