@@ -32,7 +32,7 @@ def lines_for_voronoi(vor, img_w, img_h):
     return lines
 
 
-def features_from_img(img, blur_radius):
+def features_from_img(img, blur_radius, features_where=0):
     gray = cv2.cvtColor(img, cv2.COLOR_RGB2GRAY)
 
     if blur_radius > 0:
@@ -40,7 +40,7 @@ def features_from_img(img, blur_radius):
 
     _, binimg = cv2.threshold(gray, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
 
-    return gray, binimg, np.where(binimg == 0)
+    return gray, binimg, np.where(binimg == features_where)
 
 
 def voronoi_from_feature_samples(features, sample_size):
