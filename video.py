@@ -28,6 +28,9 @@ class VideoFrameGenerator:
         self.impulse = 30
         self.decay = 1  # linear decay of r per frame
 
+        #self.frame_layers_alpha_decay_basefactor = 0.05
+        #self.frame_layers = []
+
         self.vor_lines_features_factor = 10000
         self.vor_lines_alpha_decay_basefactor = 0.05
         self.vor_lines = []    # holds tuples (voronoi lines frame, lines mask, current alpha, alpha decay factor)
@@ -37,9 +40,12 @@ class VideoFrameGenerator:
 
         in_frame = self.input_clip.get_frame(t)
 
-        bin_frame, features = features_from_img(in_frame, blur_radius=5)
-        out_frame = cv2.cvtColor(bin_frame, cv2.COLOR_GRAY2BGR)   # use mask as output base
-        out_frame = out_frame.astype(np.float) / 255
+        gray_frame, bin_frame, features = features_from_img(in_frame, blur_radius=5)
+        gray_frame = cv2.cvtColor(gray_frame, cv2.COLOR_GRAY2BGR)
+        gray_frame = gray_frame.astype(np.float) / 255
+        # out_frame = cv2.cvtColor(bin_frame, cv2.COLOR_GRAY2BGR)   # use mask as output base
+        # out_frame = out_frame.astype(np.float) / 255
+        # out_frame = create_frame(in_frame.shape[1], in_frame.shape[0], dtype=np.float)
 
         # out_frame = in_frame.astype(np.float) / 255        # use orig. frame as output base
         # out_frame_mask = (255-bin_frame)[:, :, np.newaxis]    # use masked orig. frame as output base
@@ -54,13 +60,14 @@ class VideoFrameGenerator:
             lines = lines_for_voronoi(vor, self.w, self.h)
             alpha_decay = self.vor_lines_alpha_decay_basefactor * (1.5-onset_ampl)
             vor_lines_frame = create_frame(self.w, self.h, dtype=np.float)
-            draw_lines(vor_lines_frame, lines, (1.0, 0, 0), lineType=cv2.LINE_AA)
+            draw_lines(vor_lines_frame, lines, (1.0, 1.0, 1.0), lineType=cv2.LINE_AA)
 
             vor_lines_mask_indices = np.where(vor_lines_frame[:, :] != (0.0, 0.0, 0.0))[:2]
 
-            self.vor_lines.append((vor_lines_frame, vor_lines_mask_indices, 1.0, alpha_decay))
+            self.vor_lines.append((gray_frame, vor_lines_frame, vor_lines_mask_indices, 1.0, alpha_decay))
+            #self.frame_layers.append((gray_frame, 1.0, alpha_decay))
 
-        out_frame = self._update_voronoi_lines(out_frame)
+        out_frame = self._update_voronoi_lines(gray_frame)
         out_frame = out_frame * 255
         out_frame = out_frame.astype(np.uint8)
 
@@ -70,27 +77,29 @@ class VideoFrameGenerator:
 
     def _update_voronoi_lines(self, frame):
         tmp_vor_lines = []
-        for lines_frame, mask_indices, alpha, alpha_decay in self.vor_lines:
+        for gray_frame, lines_frame, mask_indices, lines_alpha, lines_alpha_decay in self.vor_lines:
             #cv2.scaleAdd(lines_frame, alpha, frame, dst=frame)    # blend mode: addition
             #cv2.addWeighted(frame, 1.0, lines_frame, alpha, 0.0, dst=frame)
 
             # blend mode: alpha blending
             mask = np.ones((self.h, self.w), dtype=np.float)
-            mask[mask_indices] = 1-alpha
+            mask[mask_indices] = 1-lines_alpha
 
-            frame = alpha * lines_frame + mask[:, :, np.newaxis] * frame
+            frame = lines_alpha * lines_frame\
+                  + lines_alpha * mask[:, :, np.newaxis] * gray_frame\
+                  + mask[:, :, np.newaxis] * frame
             # frame = cv2.GaussianBlur(alpha * lines_frame, (3, 3), 0)\
             #       + cv2.GaussianBlur(mask, (3, 3), 0)[:, :, np.newaxis] * frame
 
-            alpha -= alpha_decay
-            if alpha > 0:
-                tmp_vor_lines.append((lines_frame, mask_indices, alpha, alpha_decay))
+            lines_alpha -= lines_alpha_decay
+            if lines_alpha > 0:
+                tmp_vor_lines.append((gray_frame, lines_frame, mask_indices, lines_alpha, lines_alpha_decay))
 
         self.vor_lines = tmp_vor_lines
 
         # rescale each channel independently
-        # for c in range(3):
-        #     frame[:, :, c] /= frame[:, :, c].max()
+        for c in range(3):
+            frame[:, :, c] /= frame[:, :, c].max()
 
         return frame
 
@@ -113,7 +122,8 @@ with open('tmp/onsets.pickle', 'rb') as f:
     samplerate, onsets, onset_max_ampl, _ = pickle.load(f)
     assert len(onsets) == len(onset_max_ampl)
 
-input_clip = VideoFileClip('video/stockvideotest.mp4', audio=False).subclip(0, CLIP_SEC)
+input_clip = VideoFileClip('video/VIDEO0077.3gp', audio=False).subclip(5, 5 + CLIP_SEC)
+#input_clip = VideoFileClip('video/VID_20180110_233008.mp4', audio=False).subclip(5, 5 + CLIP_SEC)
 input_clip = input_clip.fx(vfx.resize, width=CLIP_W)
 
 

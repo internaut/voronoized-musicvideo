@@ -40,7 +40,7 @@ def features_from_img(img, blur_radius):
 
     _, binimg = cv2.threshold(gray, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
 
-    return binimg, np.where(binimg == 0)
+    return gray, binimg, np.where(binimg == 0)
 
 
 def voronoi_from_feature_samples(features, sample_size):
