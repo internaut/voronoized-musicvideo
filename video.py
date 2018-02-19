@@ -6,8 +6,8 @@ import numpy as np
 from moviepy.editor import VideoClip, VideoFileClip, AudioFileClip, AudioClip
 import moviepy.video.fx.all as vfx
 
-from voronoize import features_from_img, voronoi_from_feature_samples, lines_for_voronoi, draw_lines
-from helpers import create_frame
+from voronoize import features_from_img, voronoi_from_feature_samples, lines_for_voronoi
+from helpers import create_surface, draw_lines
 
 CLIP_FPS = 24
 CLIP_W = 640
@@ -61,12 +61,13 @@ class VideoFrameGenerator:
         # out_frame = cv2.cvtColor(bin_frame, cv2.COLOR_GRAY2BGR)   # use mask as output base
         # out_frame = out_frame.astype(np.float) / 255
 
-        if self.cur_scene['base'] == 'bin':
-            out_frame = cv2.cvtColor(bin_frame, cv2.COLOR_GRAY2BGR).astype(np.float) / 255
-            if self.cur_scene.get('base_invert'):
-                out_frame = 1 - out_frame
-        else:
-            out_frame = create_frame(in_frame.shape[1], in_frame.shape[0], dtype=np.float)
+        # if self.cur_scene['base'] == 'bin':
+        #    out_frame = cv2.cvtColor(bin_frame, cv2.COLOR_GRAY2BGR).astype(np.float) / 255
+        #    if self.cur_scene.get('base_invert'):
+        #        out_frame = 1 - out_frame
+        # else:
+        #    out_frame = create_frame(in_frame.shape[1], in_frame.shape[0], dtype=np.float)
+        out_surface = create_surface(in_frame.shape[1], in_frame.shape[0])
 
         fade_in = self.cur_scene.get('fade_in')
         if fade_in:
@@ -83,63 +84,35 @@ class VideoFrameGenerator:
         if onset_ampl > 0:
             n_vor_features = int(round(self.cur_scene['vor_lines_features_factor'] * onset_ampl))
             vor = voronoi_from_feature_samples(features, n_vor_features)
-
             lines = lines_for_voronoi(vor, self.w, self.h)
             alpha_decay = self.cur_scene['vor_lines_alpha_decay_basefactor'] * (1.5-onset_ampl)
-            vor_lines_frame = create_frame(self.w, self.h)
-            draw_lines(vor_lines_frame, lines, (255, 255, 255), lineType=cv2.LINE_AA)   # AA requires uint8 type
-            vor_lines_mask_indices = np.where(vor_lines_frame[:, :] != (0, 0, 0))[:2]
-            vor_lines_frame = vor_lines_frame.astype(np.float) / 255
-
             initial_alpha = max(min(self.cur_scene['vor_lines_initial_alpha_factor'] * onset_ampl, 1.0), 0.2)
-            self.vor_lines.append((None, vor_lines_frame, vor_lines_mask_indices, initial_alpha, alpha_decay))
+
+            self.vor_lines.append((lines, initial_alpha, alpha_decay))
             #self.frame_layers.append((gray_frame, 1.0, alpha_decay))
 
-        out_frame = self._update_voronoi_lines(out_frame, base_frame_alpha, rescale=False)
-        out_frame = np.clip(out_frame, 0, 1)
-        out_frame = out_frame * 255
-        out_frame = out_frame.astype(np.uint8)
+        self._update_voronoi_lines(out_surface, base_frame_alpha)
 
-        #out_frame = cv2.GaussianBlur(out_frame, (5, 5), 0)
+        return out_surface.get_npimage()
 
-        return out_frame
-
-    def _update_voronoi_lines(self, frame, frame_alpha, rescale):
+    def _update_voronoi_lines(self, surface, surface_alpha):
         tmp_vor_lines = []
-        for gray_frame, lines_frame, mask_indices, lines_alpha, lines_alpha_decay in self.vor_lines:
-            #cv2.scaleAdd(lines_frame, alpha, frame, dst=frame)    # blend mode: addition
-            cv2.addWeighted(frame, frame_alpha, lines_frame, lines_alpha, 0.0, dst=frame)
-
-            # blend mode: alpha blending
-#            mask = np.ones((self.h, self.w), dtype=np.float)
-#            mask[mask_indices] = 1-lines_alpha
-
-#            frame = lines_alpha * lines_frame + mask[:, :, np.newaxis] * frame
-#                  + lines_alpha * mask[:, :, np.newaxis] * gray_frame\
-
-            # frame = cv2.GaussianBlur(alpha * lines_frame, (3, 3), 0)\
-            #       + cv2.GaussianBlur(mask, (3, 3), 0)[:, :, np.newaxis] * frame
+        for lines, lines_alpha, lines_alpha_decay in self.vor_lines:
+            draw_lines(surface, lines, color=(1, 1, 1, lines_alpha))
 
             lines_alpha -= lines_alpha_decay
             if lines_alpha > 0:
-                tmp_vor_lines.append((gray_frame, lines_frame, mask_indices, lines_alpha, lines_alpha_decay))
+                tmp_vor_lines.append((lines, lines_alpha, lines_alpha_decay))
 
         self.vor_lines = tmp_vor_lines
-
-        # rescale
-        if rescale and frame.max() > 1.0:
-            frame /= frame.max()
-
-#        # rescale each channel independently
-#        for c in range(3):
-#            frame[:, :, c] /= frame[:, :, c].max()
-
-        return frame
 
     def _setup_scenes(self):
         base_size = None
         for sc_def in self.scenes:
             clip = VideoFileClip(os.path.join('video', sc_def['video']), audio=False)
+            subclip_markers = sc_def.get('subclip')
+            if subclip_markers:
+                clip = clip.subclip(*subclip_markers)
             clip = clip.fx(vfx.resize, width=CLIP_W)
             if not base_size:
                 base_size = clip.size
@@ -167,37 +140,48 @@ with open('tmp/onsets.pickle', 'rb') as f:
     assert len(onsets) == len(onset_max_ampl)
 
 scenes = [
+    # {
+    #    'video': 'VID_20180110_233008.mp4',
+    #    'base': None,
+    #    't': (0, 10),
+    #    #'subclip': (3, 13),
+    #    # 't': (0, 5),
+    #    'features_where': 255,
+    #    'vor_lines_features_factor': 40000,
+    #    'vor_lines_initial_alpha_factor': 10.0,
+    #    'vor_lines_alpha_decay_basefactor': 0.01,
+    #},
     {
-        'video': 'augen.mp4',
-        'base': None,
-        't': (0, 58.212),
-        #'t': (0, 5),
-        'vor_lines_features_factor': 20000,
-        'vor_lines_initial_alpha_factor': 8.0,
-        'vor_lines_alpha_decay_basefactor': 0.01,
+         'video': 'augen.mp4',
+         'base': None,
+         't': (0, 58.212),
+         #'t': (0, 5),
+         'vor_lines_features_factor': 20000,
+         'vor_lines_initial_alpha_factor': 8.0,
+         'vor_lines_alpha_decay_basefactor': 0.01,
     },
-    {
-        'video': 'flug.mp4',
-        'base': 'bin',
-        'base_invert': True,
-        #'fade_in': 0.5,
-        't': (58.212, 81.769),
-        #'t': (5, 10),
-        'vor_lines_features_factor': 15000,
-        'vor_lines_initial_alpha_factor': 6.0,
-        'vor_lines_alpha_decay_basefactor': 0.01,
-    },
-    {
-        'video': 'live.3gp',
-        'base': None,
-        #'fade_in': 0.5,
-        't': (81.769, 120),
-        #'t': (5, 10),
-        'features_where': 255,
-        'vor_lines_features_factor': 20000,
-        'vor_lines_initial_alpha_factor': 2.0,
-        'vor_lines_alpha_decay_basefactor': 0.01,
-    }
+    # {
+    #     'video': 'flug.mp4',
+    #     'base': 'bin',
+    #     'base_invert': True,
+    #     #'fade_in': 0.5,
+    #     't': (58.212, 81.769),
+    #     #'t': (5, 10),
+    #     'vor_lines_features_factor': 15000,
+    #     'vor_lines_initial_alpha_factor': 6.0,
+    #     'vor_lines_alpha_decay_basefactor': 0.01,
+    # },
+    # {
+    #     'video': 'live.3gp',
+    #     'base': None,
+    #     #'fade_in': 0.5,
+    #     't': (81.769, 120),
+    #     #'t': (5, 10),
+    #     'features_where': 255,
+    #     'vor_lines_features_factor': 20000,
+    #     'vor_lines_initial_alpha_factor': 2.0,
+    #     'vor_lines_alpha_decay_basefactor': 0.01,
+    # }
 ]
 
 #input_clip = VideoFileClip('video/stockvideotest.mp4', audio=False).subclip(0, 0 + CLIP_SEC)
@@ -212,7 +196,7 @@ frame_gen = VideoFrameGenerator(scenes, onset_frame_ampl)
 
 audioclip = AudioFileClip('audio/kiriloff-fortschritt-unmastered.wav')
 
-clip = VideoClip(lambda t: frame_gen.make_video_frame(t), duration=120)
+clip = VideoClip(lambda t: frame_gen.make_video_frame(t), duration=2)
 audioclip = audioclip.set_duration(clip.duration)
 clip = clip.set_audio(audioclip)
 clip.write_videofile('out/moviepy_video_test.mp4', fps=CLIP_FPS)

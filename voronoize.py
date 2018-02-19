@@ -4,7 +4,7 @@ import numpy as np
 import cv2
 from scipy.spatial import Voronoi, voronoi_plot_2d
 
-from helpers import display_img, draw_lines
+#from helpers import display_img, draw_lines
 
 
 def lines_for_voronoi(vor, img_w, img_h):
