@@ -20,16 +20,15 @@ def display_img(img):
 
 
 def draw_lines(surface, lines, color, width=1, **kwargs):
-    for a_to_b in lines:
-        l = gz.polyline(a_to_b, stroke=color, stroke_width=width, **kwargs)
-        l.draw(surface)
+    gz_lines = [gz.polyline(a_to_b, stroke=color, stroke_width=width, **kwargs) for a_to_b in lines]
+    gz.Group(gz_lines).draw(surface)
 
 #def create_frame(w, h, fill=(0, 0, 0), dtype=np.uint8):
 #    return np.full((h, w, 3), fill, dtype=dtype)
 
 
 def create_surface(w, h, fill=(0, 0, 0)):
-    return gz.Surface(width=w, height=h, bg_color=fill)
+    return gz.Surface(w, h, bg_color=fill)
 
 
 def pt2tuple(p):

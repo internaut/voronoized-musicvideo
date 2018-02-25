@@ -38,24 +38,24 @@ class VideoFrameGenerator:
     def make_video_frame(self, t):
         fnum = int(round(t * self.fps))   # frame number
 
-        onset_ampl = self.onset_frame_ampl.get(fnum, 0)
-        self._update_cur_scene(t)
-
-        self.clip_t += 1/self.fps
-#        self.clip_t -= onset_ampl * 0.5
-#        self.clip_t = max(self.clip_t, 0)
-
-        if self.clip_t > self.cur_clip.end:
-            self.clip_t = 0
-
-        in_frame = self.cur_clip.get_frame(self.clip_t)
-
-        if in_frame.dtype != np.uint8:
-            in_frame = in_frame.astype(np.uint8)
-
-        _, bin_frame, features = features_from_img(in_frame,
-                                                   blur_radius=5,
-                                                   features_where=self.cur_scene.get('features_where', 0))
+#         onset_ampl = self.onset_frame_ampl.get(fnum, 0)
+#         self._update_cur_scene(t)
+#
+#         self.clip_t += 1/self.fps
+# #        self.clip_t -= onset_ampl * 0.5
+# #        self.clip_t = max(self.clip_t, 0)
+#
+#         if self.clip_t > self.cur_clip.end:
+#             self.clip_t = 0
+#
+#         in_frame = self.cur_clip.get_frame(self.clip_t)
+#
+#         if in_frame.dtype != np.uint8:
+#             in_frame = in_frame.astype(np.uint8)
+#
+#         _, bin_frame, features = features_from_img(in_frame,
+#                                                    blur_radius=5,
+#                                                    features_where=self.cur_scene.get('features_where', 0))
         # gray_frame = cv2.cvtColor(gray_frame, cv2.COLOR_GRAY2BGR)
         # gray_frame = gray_frame.astype(np.float) / 255
         # out_frame = cv2.cvtColor(bin_frame, cv2.COLOR_GRAY2BGR)   # use mask as output base
@@ -69,29 +69,30 @@ class VideoFrameGenerator:
         #    out_frame = create_frame(in_frame.shape[1], in_frame.shape[0], dtype=np.float)
         out_surface = create_surface(in_frame.shape[1], in_frame.shape[0])
 
-        fade_in = self.cur_scene.get('fade_in')
-        if fade_in:
-            base_frame_alpha = min(self.clip_t / fade_in, 1)
-        else:
-            base_frame_alpha = 1.0
-
-        # gray_frame = out_frame.copy()
-
-        # out_frame = in_frame.astype(np.float) / 255        # use orig. frame as output base
-        # out_frame_mask = (255-bin_frame)[:, :, np.newaxis]    # use masked orig. frame as output base
-        # out_frame = out_frame_mask * (in_frame.astype(np.float) / 255)
-
-        if onset_ampl > 0:
-            n_vor_features = int(round(self.cur_scene['vor_lines_features_factor'] * onset_ampl))
-            vor = voronoi_from_feature_samples(features, n_vor_features)
-            lines = lines_for_voronoi(vor, self.w, self.h)
-            alpha_decay = self.cur_scene['vor_lines_alpha_decay_basefactor'] * (1.5-onset_ampl)
-            initial_alpha = max(min(self.cur_scene['vor_lines_initial_alpha_factor'] * onset_ampl, 1.0), 0.2)
-
-            self.vor_lines.append((lines, initial_alpha, alpha_decay))
-            #self.frame_layers.append((gray_frame, 1.0, alpha_decay))
-
-        self._update_voronoi_lines(out_surface, base_frame_alpha)
+        # fade_in = self.cur_scene.get('fade_in')
+        # if fade_in:
+        #     base_frame_alpha = min(self.clip_t / fade_in, 1)
+        # else:
+        #     base_frame_alpha = 1.0
+        #
+        # # gray_frame = out_frame.copy()
+        #
+        # # out_frame = in_frame.astype(np.float) / 255        # use orig. frame as output base
+        # # out_frame_mask = (255-bin_frame)[:, :, np.newaxis]    # use masked orig. frame as output base
+        # # out_frame = out_frame_mask * (in_frame.astype(np.float) / 255)
+        #
+        # if onset_ampl > 0:
+        #     n_vor_features = int(round(self.cur_scene['vor_lines_features_factor'] * onset_ampl))
+        #     vor = voronoi_from_feature_samples(features, n_vor_features)
+        #     lines = lines_for_voronoi(vor, self.w, self.h)
+        #     alpha_decay = self.cur_scene['vor_lines_alpha_decay_basefactor'] * (1.5-onset_ampl)
+        #     initial_alpha = max(min(self.cur_scene['vor_lines_initial_alpha_factor'] * onset_ampl, 1.0), 0.2)
+        #
+        #     self.vor_lines.append((lines, initial_alpha, alpha_decay))
+        #     #self.frame_layers.append((gray_frame, 1.0, alpha_decay))
+        #
+        # self._update_voronoi_lines(out_surface, base_frame_alpha)
+        # print(fnum, len(self.vor_lines), sum(map(len, [lines for lines, _, _ in self.vor_lines])))
 
         return out_surface.get_npimage()
 
@@ -194,9 +195,9 @@ onset_frame_ampl = dict(zip(onset_frames, onset_max_ampl))
 
 frame_gen = VideoFrameGenerator(scenes, onset_frame_ampl)
 
-audioclip = AudioFileClip('audio/kiriloff-fortschritt-unmastered.wav')
+#audioclip = AudioFileClip('audio/kiriloff-fortschritt-unmastered.wav')
 
-clip = VideoClip(lambda t: frame_gen.make_video_frame(t), duration=2)
-audioclip = audioclip.set_duration(clip.duration)
-clip = clip.set_audio(audioclip)
+clip = VideoClip(lambda t: frame_gen.make_video_frame(t), duration=10)
+#audioclip = audioclip.set_duration(clip.duration)
+#clip = clip.set_audio(audioclip)
 clip.write_videofile('out/moviepy_video_test.mp4', fps=CLIP_FPS)
