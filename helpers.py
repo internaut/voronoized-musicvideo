@@ -34,3 +34,34 @@ def create_surface(w, h, fill=(0, 0, 0)):
 def pt2tuple(p):
     """Convert numpy array point to tuple (needed for OpenCV)"""
     return tuple(p.round().astype(np.int32))
+
+
+def restrict_line(a, b, w, h):
+    def restrict_coord(g0, g1, h0, h1, limit):
+        g1 = h1 + ((limit - h0) / (g0 - h0)) * (g1 - h1)
+        return limit, g1
+
+    pts = [a, b, a]
+
+    restricted = []
+    for i in range(2):
+        gx, gy = pts[i]  # this point
+        hx, hy = pts[i + 1]  # other point
+
+        if gx < 0:
+            gx, gy = restrict_coord(gx, gy, hx, hy, 0)
+        elif gx > w:
+            gx, gy = restrict_coord(gx, gy, hx, hy, w)
+
+        if gy < 0:
+            gy, gx = restrict_coord(gy, gx, hy, hx, 0)
+        elif gy > h:
+            gy, gx = restrict_coord(gy, gx, hy, hx, h)
+
+        restricted.append((gx, gy))
+
+    for i in range(2):
+        assert 0 <= restricted[i][0] <= w
+        assert 0 <= restricted[i][1] <= h
+
+    return tuple(restricted)
