@@ -37,6 +37,9 @@ def pt2tuple(p):
 
 
 def restrict_line(a, b, w, h):
+    """
+    Restrict a line from `a` to `b` to the rectangle (0, `w`), (0, `h`).
+    """
     def restrict_coord(g0, g1, h0, h1, limit):
         g1 = h1 + ((limit - h0) / (g0 - h0)) * (g1 - h1)
         return limit, g1
