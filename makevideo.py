@@ -11,6 +11,9 @@ from voronoize import features_from_img, voronoi_from_feature_samples, lines_for
 from graphics import draw_lines, nparray_from_surface
 from helpers import restrict_line
 
+
+np.random.seed(123)
+
 CLIP_FPS = 24
 CLIP_W = 640
 CLIP_H = 480
@@ -37,28 +40,57 @@ class VideoFrameGenerator:
         self.vor_lines = []
 
     def make_video_frame(self, t):
-        self.surface = cairo.ImageSurface(cairo.FORMAT_ARGB32, self.w, self.h)
-        self.ctx = cairo.Context(self.surface)
-
         fnum = int(round(t * CLIP_FPS))   # frame number
 
         self._update_cur_scene(t)
 
         onset_ampl = self.onset_frame_ampl.get(fnum, 0)
 
-        self.clip_t += 1 / CLIP_FPS
+        jump = self.cur_scene.get('jump', None)
+
+        if jump and onset_ampl >= jump['ampl']:
+            if 'by' in jump:
+                self.clip_t += jump['by']
+                self.clip_t = max(self.clip_t, 0)
+            elif 'by_random' in jump:
+                self.clip_t += np.random.normal(0, jump['by_random'] * onset_ampl)
+            else:
+                self.clip_t = jump.get('to', 0)
+        else:
+            self.clip_t += 1 / CLIP_FPS
 
         in_frame = self.cur_clip.get_frame(self.clip_t)
 
         if in_frame.dtype != np.uint8:
             in_frame = in_frame.astype(np.uint8)
 
+        self.surface = cairo.ImageSurface(cairo.FORMAT_ARGB32, self.w, self.h)
+
+        self.ctx = cairo.Context(self.surface)
+
+        if self.cur_scene['mode'] == 'original':
+            return in_frame
+        elif self.cur_scene['mode'] == 'voronoi':
+            return self._render_voronoi(in_frame, onset_ampl)
+        else:
+            return None
+
+    def _render_voronoi(self, in_frame, onset_ampl):
         _, bin_frame, features = features_from_img(in_frame,
                                                    blur_radius=5,
                                                    features_where=self.cur_scene.get('features_where', 0))
 
-        self.ctx.set_source_rgba(0, 0, 0, 1)
-        self.ctx.paint()
+        base = self.cur_scene.get('base', None)
+        if base == 'original':
+            surface_base = in_frame[:, :, [2, 1, 0]]
+            surface_base = np.dstack([surface_base, 255 * np.ones((self.h, self.w), dtype=np.uint8)])
+
+            surface_data = np.frombuffer(self.surface.get_data(), np.uint8)
+            surface_data += surface_base.flatten()
+            self.surface.mark_dirty()
+        else:
+            self.ctx.set_source_rgba(0, 0, 0, 1)
+            self.ctx.paint()
 
         if onset_ampl > 0:
             n_vor_features = int(round(self.cur_scene['vor_lines_features_factor'] * onset_ampl))
@@ -86,9 +118,13 @@ class VideoFrameGenerator:
                 a = (ax, ay)
                 b = (bx, by)
 
-                pix_a = tuple(list(baseframe[ay, ax, :] / 255) + [lines_alpha])
-                pix_b = tuple(list(baseframe[by, bx, :] / 255) + [lines_alpha])
-                stroke = gz.ColorGradient('linear', ((0, pix_a), (1, pix_b)), a, b)
+                color = self.cur_scene['voronoi'].get('color', None)
+                if color:
+                    stroke = color + (lines_alpha, )
+                else:
+                    pix_a = tuple(list(baseframe[ay, ax, :] / 255) + [lines_alpha])
+                    pix_b = tuple(list(baseframe[by, bx, :] / 255) + [lines_alpha])
+                    stroke = gz.ColorGradient('linear', ((0, pix_a), (1, pix_b)), a, b)
                 draw_lines(self.ctx, [(a, b)], stroke)
 
             lines_alpha -= lines_alpha_decay
@@ -134,12 +170,20 @@ with open('tmp/onsets.pickle', 'rb') as f:
 scenes = [
     {
         'video': '00120.MTS',
-        'base': None,
+        'mode': 'voronoi',
+        'base': 'original',
         't': (0, 58.212),
         'subclip': (14, 24),
-        'vor_lines_features_factor': 50000,
-        'vor_lines_initial_alpha_factor': 20.0,
-        'vor_lines_alpha_decay_basefactor': 0.001,
+        'jump': {
+            'ampl': 0.02,
+            'by_random': 20,
+        },
+        'voronoi': {
+            'color': (0, 0, 0),
+        },
+        'vor_lines_features_factor': 10000,
+        'vor_lines_initial_alpha_factor': 8.0,
+        'vor_lines_alpha_decay_basefactor': 0.01,
         'features_where': 0
     },
 ]
