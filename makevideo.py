@@ -76,9 +76,11 @@ class VideoFrameGenerator:
             return None
 
     def _render_voronoi(self, in_frame, onset_ampl):
+        vor_opts = self.cur_scene['voronoi']
+
         _, bin_frame, features = features_from_img(in_frame,
                                                    blur_radius=5,
-                                                   features_where=self.cur_scene.get('features_where', 0))
+                                                   features_where=vor_opts.get('features_where', 0))
 
         base = self.cur_scene.get('base', None)
         if base == 'original':
@@ -93,12 +95,12 @@ class VideoFrameGenerator:
             self.ctx.paint()
 
         if onset_ampl > 0:
-            n_vor_features = int(round(self.cur_scene['vor_lines_features_factor'] * onset_ampl))
+            n_vor_features = int(round(vor_opts['lines_features_factor'] * onset_ampl))
             vor = voronoi_from_feature_samples(features, n_vor_features)
             lines = lines_for_voronoi(vor, self.w, self.h)
 
-            alpha_decay = self.cur_scene['vor_lines_alpha_decay_basefactor'] * (1.5-onset_ampl)
-            initial_alpha = max(min(self.cur_scene['vor_lines_initial_alpha_factor'] * onset_ampl, 1.0), 0.2)
+            alpha_decay = vor_opts['lines_alpha_decay_basefactor'] * (1.5-onset_ampl)
+            initial_alpha = max(min(vor_opts['lines_initial_alpha_factor'] * onset_ampl, 1.0), 0.2)
 
             self.vor_lines.append((lines, initial_alpha, alpha_decay))
 
@@ -169,22 +171,31 @@ with open('tmp/onsets.pickle', 'rb') as f:
 
 scenes = [
     {
-        'video': '00120.MTS',
-        'mode': 'voronoi',
-        'base': 'original',
-        't': (0, 58.212),
-        'subclip': (14, 24),
+        'video': '00156.MTS',
+        'mode': 'original',
+        't': (0, 24.5),
         'jump': {
             'ampl': 0.02,
             'by_random': 20,
+        }
+    },
+    {
+        'video': '00151.MTS',
+        'mode': 'voronoi',
+        'base': 'original',
+        't': (24.5, 58.212),
+        'subclip': (5, 10),
+        'jump': {
+            'ampl': 0.05,
+            'to': 0,
         },
         'voronoi': {
-            'color': (0, 0, 0),
+#            'color': (0, 0, 0),
+            'lines_features_factor': 10000,
+            'lines_initial_alpha_factor': 8.0,
+            'lines_alpha_decay_basefactor': 0.01,
+            'features_where': 0
         },
-        'vor_lines_features_factor': 10000,
-        'vor_lines_initial_alpha_factor': 8.0,
-        'vor_lines_alpha_decay_basefactor': 0.01,
-        'features_where': 0
     },
 ]
 
@@ -194,7 +205,7 @@ onset_frame_ampl = dict(zip(onset_frames, onset_max_ampl))
 
 frame_gen = VideoFrameGenerator(scenes, onset_frame_ampl)
 
-clip = VideoClip(lambda t: frame_gen.make_video_frame(t), duration=10)
+clip = VideoClip(lambda t: frame_gen.make_video_frame(t), duration=58)
 
 audioclip = AudioFileClip('audio/kiriloff-fortschritt-unmastered.wav')
 audioclip = audioclip.set_duration(clip.duration)
