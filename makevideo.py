@@ -18,7 +18,6 @@ CLIP_FPS = 24
 CLIP_W = 640
 CLIP_H = 480
 
-
 class VideoFrameGenerator:
     def __init__(self, scenes, onset_frame_ampl):
         assert scenes
@@ -30,6 +29,7 @@ class VideoFrameGenerator:
         self.clip_t = 0
         self.scenes = scenes
         self.w, self.h = self._setup_scenes()
+        self.blank_frame = np.zeros((self.h, self.w, 3))
         assert len(self.clips) == len(self.scenes)
 
         self.onset_frame_ampl = onset_frame_ampl
@@ -44,16 +44,22 @@ class VideoFrameGenerator:
 
         self._update_cur_scene(t)
 
+        if self.cur_scene['mode'] is None:
+            return self.blank_frame
+
         onset_ampl = self.onset_frame_ampl.get(fnum, 0)
 
         jump = self.cur_scene.get('jump', None)
 
-        if jump and onset_ampl >= jump['ampl']:
+        if jump and onset_ampl >= jump['ampl'] and self.onset_frame_ampl.get(fnum-1, 0) < jump['ampl'] and self.clip_t > 0:
             if 'by' in jump:
                 self.clip_t += jump['by']
                 self.clip_t = max(self.clip_t, 0)
             elif 'by_random' in jump:
-                self.clip_t += np.random.normal(0, jump['by_random'] * onset_ampl)
+                rand_jump = np.random.normal(0, jump['by_random'] * onset_ampl)
+                if abs(rand_jump) < 1 / CLIP_FPS:
+                    rand_jump = 1 / CLIP_FPS
+                self.clip_t += rand_jump
             else:
                 self.clip_t = jump.get('to', 0)
         else:
@@ -69,11 +75,19 @@ class VideoFrameGenerator:
         self.ctx = cairo.Context(self.surface)
 
         if self.cur_scene['mode'] == 'original':
-            return in_frame
+            out_frame = in_frame
         elif self.cur_scene['mode'] == 'voronoi':
-            return self._render_voronoi(in_frame, onset_ampl)
+            out_frame = self._render_voronoi(in_frame, onset_ampl)
         else:
-            return None
+            out_frame = None
+
+        if out_frame is not None:
+            fade = self.cur_scene.get('fade', None)
+            if fade and t >= fade['start_t']:
+                fade_dt = 1 - (t - fade['start_t']) / (fade['end_t'] - fade['start_t'])
+                out_frame = (out_frame.astype(np.float) * fade_dt).astype(np.uint8)
+
+        return out_frame
 
     def _render_voronoi(self, in_frame, onset_ampl):
         vor_opts = self.cur_scene['voronoi']
@@ -109,8 +123,6 @@ class VideoFrameGenerator:
         return nparray_from_surface(self.surface)
 
     def _update_voronoi_lines(self, baseframe):
-        #self.ctx.set_operator(cairo.OPERATOR_MULTIPLY)    # TODO
-
         tmp_vor_lines = []
         for lines, lines_alpha, lines_alpha_decay in self.vor_lines:
             for a, b in lines:
@@ -172,7 +184,8 @@ with open('tmp/onsets.pickle', 'rb') as f:
 scenes = [
     {
         'video': '00156.MTS',
-        'mode': 'original',
+        #'mode': 'original',
+        'mode': None,
         't': (0, 24.5),
         'jump': {
             'ampl': 0.02,
@@ -181,7 +194,8 @@ scenes = [
     },
     {
         'video': '00151.MTS',
-        'mode': 'voronoi',
+        #'mode': 'voronoi',
+        'mode': None,
         'base': 'original',
         't': (24.5, 58.212),
         'subclip': (5, 10),
@@ -197,6 +211,32 @@ scenes = [
             'features_where': 0
         },
     },
+    {
+        'video': '00155.MTS',
+        'mode': 'original',
+        't': (58.212, 81.0),
+        'subclip': (8, 15),
+        'jump': {
+            'ampl': 0.15,
+            'by_random': 4,
+        },
+        'fade': {
+            'start_t': 79.0,
+            'end_t': 81.0,
+        }
+    },
+    {
+        'video': '00140.MTS',
+        'mode': 'voronoi',
+        't': (81.0, 100.0),
+        'subclip': (28, None),
+        'voronoi': {
+            'lines_features_factor': 5000,
+            'lines_initial_alpha_factor': 8.0,
+            'lines_alpha_decay_basefactor': 0.01,
+            'features_where': 0
+        },
+    },
 ]
 
 # convert onset audio sample markers to frame numbers
@@ -205,7 +245,7 @@ onset_frame_ampl = dict(zip(onset_frames, onset_max_ampl))
 
 frame_gen = VideoFrameGenerator(scenes, onset_frame_ampl)
 
-clip = VideoClip(lambda t: frame_gen.make_video_frame(t), duration=58)
+clip = VideoClip(lambda t: frame_gen.make_video_frame(t), duration=100)
 
 audioclip = AudioFileClip('audio/kiriloff-fortschritt-unmastered.wav')
 audioclip = audioclip.set_duration(clip.duration)
