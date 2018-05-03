@@ -1,6 +1,5 @@
 import numpy as np
 import gizeh as gz
-import cv2
 from matplotlib import pyplot as plt
 
 
@@ -14,17 +13,9 @@ def display_img(img):
     plt.show()
 
 
-#def draw_lines(img, lines, color, **kwargs):
-#    for a, b in lines:
-#        cv2.line(img, pt2tuple(a), pt2tuple(b), color, **kwargs)
-
-
 def draw_lines(surface, lines, color, width=1, **kwargs):
     gz_lines = [gz.polyline(a_to_b, stroke=color, stroke_width=width, **kwargs) for a_to_b in lines]
     gz.Group(gz_lines).draw(surface)
-
-#def create_frame(w, h, fill=(0, 0, 0), dtype=np.uint8):
-#    return np.full((h, w, 3), fill, dtype=dtype)
 
 
 def create_surface(w, h, fill=(0, 0, 0)):
@@ -63,8 +54,9 @@ def restrict_line(a, b, w, h):
 
         restricted.append((gx, gy))
 
-    for i in range(2):
-        assert 0 <= restricted[i][0] <= w
-        assert 0 <= restricted[i][1] <= h
+    # handle edge cases
+    restricted = np.array(restricted)
+    xs = restricted[:, 0].clip(0, w)
+    ys = restricted[:, 1].clip(0, h)
 
-    return tuple(restricted)
+    return np.vstack((xs, ys)).T.tolist()

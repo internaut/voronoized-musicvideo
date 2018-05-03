@@ -18,6 +18,7 @@ CLIP_FPS = 24
 CLIP_W = 640
 CLIP_H = 480
 
+
 class VideoFrameGenerator:
     def __init__(self, scenes, onset_frame_ampl):
         assert scenes
@@ -65,6 +66,9 @@ class VideoFrameGenerator:
         else:
             self.clip_t += 1 / CLIP_FPS
 
+        if self.clip_t > self.cur_clip.duration:
+            self.clip_t = 0
+
         in_frame = self.cur_clip.get_frame(self.clip_t)
 
         if in_frame.dtype != np.uint8:
@@ -77,7 +81,7 @@ class VideoFrameGenerator:
         if self.cur_scene['mode'] == 'original':
             out_frame = in_frame
         elif self.cur_scene['mode'] == 'voronoi':
-            out_frame = self._render_voronoi(in_frame, onset_ampl)
+            out_frame = self._render_voronoi(in_frame, onset_ampl, t)
         else:
             out_frame = None
 
@@ -89,7 +93,7 @@ class VideoFrameGenerator:
 
         return out_frame
 
-    def _render_voronoi(self, in_frame, onset_ampl):
+    def _render_voronoi(self, in_frame, onset_ampl, t):
         vor_opts = self.cur_scene['voronoi']
 
         _, bin_frame, features = features_from_img(in_frame,
@@ -109,7 +113,16 @@ class VideoFrameGenerator:
             self.ctx.paint()
 
         if onset_ampl > 0:
-            n_vor_features = int(round(vor_opts['lines_features_factor'] * onset_ampl))
+            if 'lines_features_factor_fade' in vor_opts:
+                ff_fade = vor_opts['lines_features_factor_fade']
+                ff_fade_from, ff_fade_to = ff_fade['from_to']
+                ff_fade_delta = ff_fade_to - ff_fade_from
+                ff_fade_dt = (t - ff_fade['start_t']) / (ff_fade['end_t'] - ff_fade['start_t'])
+                features_factor = ff_fade_from + ff_fade_dt * ff_fade_delta
+            else:
+                features_factor = vor_opts['lines_features_factor']
+
+            n_vor_features = int(round(features_factor * onset_ampl))
             vor = voronoi_from_feature_samples(features, n_vor_features)
             lines = lines_for_voronoi(vor, self.w, self.h)
 
@@ -215,10 +228,10 @@ scenes = [
         'video': '00155.MTS',
         'mode': 'original',
         't': (58.212, 81.0),
-        'subclip': (8, 15),
+        'subclip': (12, None),
         'jump': {
-            'ampl': 0.15,
-            'by_random': 4,
+            'ampl': 0.1,
+            'by_random': 8,
         },
         'fade': {
             'start_t': 79.0,
@@ -226,14 +239,17 @@ scenes = [
         }
     },
     {
-        'video': '00140.MTS',
+        'video': 'live.3gp',
         'mode': 'voronoi',
-        't': (81.0, 100.0),
-        'subclip': (28, None),
+        't': (81.0, 120.0),
         'voronoi': {
-            'lines_features_factor': 5000,
+            'lines_features_factor_fade': {
+                'from_to': (2000, 15000),
+                'start_t': 81.0,
+                'end_t': 101.0
+            },
             'lines_initial_alpha_factor': 8.0,
-            'lines_alpha_decay_basefactor': 0.01,
+            'lines_alpha_decay_basefactor': 0.1,
             'features_where': 0
         },
     },
@@ -245,7 +261,7 @@ onset_frame_ampl = dict(zip(onset_frames, onset_max_ampl))
 
 frame_gen = VideoFrameGenerator(scenes, onset_frame_ampl)
 
-clip = VideoClip(lambda t: frame_gen.make_video_frame(t), duration=100)
+clip = VideoClip(lambda t: frame_gen.make_video_frame(t), duration=120)
 
 audioclip = AudioFileClip('audio/kiriloff-fortschritt-unmastered.wav')
 audioclip = audioclip.set_duration(clip.duration)
