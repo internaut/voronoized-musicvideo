@@ -109,7 +109,12 @@ class VideoFrameGenerator:
             surface_data += surface_base.flatten()
             self.surface.mark_dirty()
         else:
-            self.ctx.set_source_rgba(0, 0, 0, 1)
+            if isinstance(base, tuple):
+                base_color = base + (1, )
+            else:
+                base_color = (0, 0, 0, 1)
+
+            self.ctx.set_source_rgba(*base_color)
             self.ctx.paint()
 
         if onset_ampl > 0:
@@ -140,6 +145,9 @@ class VideoFrameGenerator:
         for lines, lines_alpha, lines_alpha_decay in self.vor_lines:
             for a, b in lines:
                 a, b = restrict_line(a, b, baseframe.shape[1]-1, baseframe.shape[0]-1)
+                a, b = map(np.array, (a, b))
+                a[np.isnan(a)] = baseframe.shape[1]-1
+                b[np.isnan(b)] = baseframe.shape[0]-1
                 ax, ay = map(int, map(round, a))
                 bx, by = map(int, map(round, b))
                 a = (ax, ay)
@@ -226,7 +234,8 @@ scenes = [
     },
     {
         'video': '00155.MTS',
-        'mode': 'original',
+        #'mode': 'original',
+        'mode': None,
         't': (58.212, 81.0),
         'subclip': (12, None),
         'jump': {
@@ -240,8 +249,9 @@ scenes = [
     },
     {
         'video': 'live.3gp',
-        'mode': 'voronoi',
-        't': (81.0, 120.0),
+        #'mode': 'voronoi',
+        'mode': None,
+        't': (81.0, 120.5),
         'voronoi': {
             'lines_features_factor_fade': {
                 'from_to': (2000, 15000),
@@ -253,6 +263,49 @@ scenes = [
             'features_where': 0
         },
     },
+    {
+        'video': '00121.MTS',
+        'subclip': (203, None),
+        #'mode': 'voronoi',
+        'mode': None,
+        't': (120.5, 143),
+        'voronoi': {
+            'lines_features_factor': 15000,
+            'lines_initial_alpha_factor': 8.0,
+            'lines_alpha_decay_basefactor': 0.05,
+            'features_where': 0
+        },
+    },
+    {
+        'video': '00122.MTS',
+        'subclip': (8*60+5, None),
+        #'mode': 'voronoi',
+        'mode': None,
+        't': (143, 2*60+38),
+        'jump': {
+            'ampl': 0.1,
+            'by_random': 8,
+        },
+        'voronoi': {
+            'lines_features_factor': 15000,
+            'lines_initial_alpha_factor': 8.0,
+            'lines_alpha_decay_basefactor': 0.05,
+            'features_where': 0
+        },
+    },
+    {
+        'video': 'flug.mp4',
+        'mode': 'voronoi',
+        'base': (1, 1, 1),
+        't': (2*60+38, 3*60),
+        'voronoi': {
+            'color': (0, 0, 0),
+            'lines_features_factor': 7500,
+            'lines_initial_alpha_factor': 8.0,
+            'lines_alpha_decay_basefactor': 0.025,
+            'features_where': 0
+        },
+    },
 ]
 
 # convert onset audio sample markers to frame numbers
@@ -261,7 +314,7 @@ onset_frame_ampl = dict(zip(onset_frames, onset_max_ampl))
 
 frame_gen = VideoFrameGenerator(scenes, onset_frame_ampl)
 
-clip = VideoClip(lambda t: frame_gen.make_video_frame(t), duration=120)
+clip = VideoClip(lambda t: frame_gen.make_video_frame(t), duration=3*60)
 
 audioclip = AudioFileClip('audio/kiriloff-fortschritt-unmastered.wav')
 audioclip = audioclip.set_duration(clip.duration)
