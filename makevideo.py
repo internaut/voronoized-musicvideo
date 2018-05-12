@@ -88,8 +88,14 @@ class VideoFrameGenerator:
         if out_frame is not None:
             fade = self.cur_scene.get('fade', None)
             if fade and t >= fade['start_t']:
-                fade_dt = 1 - (t - fade['start_t']) / (fade['end_t'] - fade['start_t'])
-                out_frame = (out_frame.astype(np.float) * fade_dt).astype(np.uint8)
+                fade_color = fade.get('color', 'black')
+                fade_dt = (t - fade['start_t']) / (fade['end_t'] - fade['start_t'])
+                if fade_color == 'white':
+                    fade_frame = out_frame.astype(np.float) + np.full((self.h, self.w, 3), fade_dt * 255,
+                                                                      dtype=np.float)
+                    out_frame = fade_frame.clip(0, 255).astype(np.uint8)
+                else:
+                    out_frame = (out_frame.astype(np.float) * (1-fade_dt)).astype(np.uint8)
 
         return out_frame
 
@@ -101,10 +107,17 @@ class VideoFrameGenerator:
                                                    features_where=vor_opts.get('features_where', 0))
 
         base = self.cur_scene.get('base', None)
-        if base == 'original':
-            surface_base = in_frame[:, :, [2, 1, 0]]
+        if base in ('original', 'bin'):
+            if base == 'original':
+                surface_base = in_frame[:, :, [2, 1, 0]]   # correct channel order
+            else:   # bin
+                # copy binary image data to all 3 channels
+                surface_base = np.repeat(bin_frame[:, :, np.newaxis], 3, axis=2)
+
+            # add alpha channel
             surface_base = np.dstack([surface_base, 255 * np.ones((self.h, self.w), dtype=np.uint8)])
 
+            # set data
             surface_data = np.frombuffer(self.surface.get_data(), np.uint8)
             surface_data += surface_base.flatten()
             self.surface.mark_dirty()
@@ -197,7 +210,6 @@ class VideoFrameGenerator:
                 break
 
 
-
 with open('tmp/onsets.pickle', 'rb') as f:
     samplerate, onsets, onset_max_ampl, _ = pickle.load(f)
     assert len(onsets) == len(onset_max_ampl)
@@ -286,6 +298,11 @@ scenes = [
             'ampl': 0.1,
             'by_random': 8,
         },
+        'fade': {
+            'start_t': 2*60+36,
+            'end_t': 2*60+38.5,
+            'color': 'white',
+        },
         'voronoi': {
             'lines_features_factor': 15000,
             'lines_initial_alpha_factor': 8.0,
@@ -294,13 +311,68 @@ scenes = [
         },
     },
     {
-        'video': 'flug.mp4',
+        'video': '00160.MTS',
         'mode': 'voronoi',
         'base': (1, 1, 1),
-        't': (2*60+38, 3*60),
+        't': (2*60+38.5, 2*60+58.5),
         'voronoi': {
             'color': (0, 0, 0),
             'lines_features_factor': 7500,
+            'lines_initial_alpha_factor': 8.0,
+            'lines_alpha_decay_basefactor': 0.025,
+            'features_where': 0
+        },
+    },
+    {
+        'video': '00151.MTS',
+        'mode': 'voronoi',
+#        'mode': None,
+        'base': (1, 1, 1),
+        't': (2*60+58.5, 3*60+42.8),
+        'subclip': (5, 10),
+        'jump': {
+            'ampl': 0.05,
+            'to': 0,
+        },
+        'voronoi': {
+#            'color': (0, 0, 0),
+            'lines_features_factor': 10000,
+            'lines_initial_alpha_factor': 8.0,
+            'lines_alpha_decay_basefactor': 0.025,
+            'features_where': 0
+        },
+    },
+    {
+        'video': 'live.3gp',
+        'mode': 'voronoi',
+        'base': (1, 1, 1),
+        't': (3*60+42.8, 4*60+5),
+        'voronoi': {
+#            'color': (0, 0, 0),
+            'lines_features_factor': 10000,
+            'lines_initial_alpha_factor': 8.0,
+            'lines_alpha_decay_basefactor': 0.025,
+            'features_where': 255
+        },
+        'fade': {
+            'start_t': 4*60+4,
+            'end_t': 4*60+5,
+            'color': 'black',
+        },
+    },
+    {
+        'video': '00155.MTS',
+        'subclip': (17, None),
+        'mode': 'voronoi',
+        'base': 'bin',
+        't': (4*60+5, 5),
+        'jump': {
+            'ampl': 0.5,
+            'by_random': 8,
+        },
+        'voronoi': {
+#            'color': (0, 0, 0),
+            'lines_features_factor': 5000,
             'lines_initial_alpha_factor': 8.0,
             'lines_alpha_decay_basefactor': 0.025,
             'features_where': 0
@@ -312,12 +384,13 @@ scenes = [
 onset_frames = np.round(onsets / samplerate * CLIP_FPS).astype(np.int)
 onset_frame_ampl = dict(zip(onset_frames, onset_max_ampl))
 
-frame_gen = VideoFrameGenerator(scenes, onset_frame_ampl)
-
-clip = VideoClip(lambda t: frame_gen.make_video_frame(t), duration=3*60)
-
 audioclip = AudioFileClip('audio/kiriloff-fortschritt-unmastered.wav')
-audioclip = audioclip.set_duration(clip.duration)
+
+frame_gen = VideoFrameGenerator(scenes, onset_frame_ampl)
+clip = VideoClip(lambda t: frame_gen.make_video_frame(t), duration=audioclip.duration)   # , duration=4*60+5
+
+#audioclip = AudioFileClip('audio/kiriloff-fortschritt-unmastered.wav')
+#audioclip = audioclip.set_duration(clip.duration)
 
 clip = clip.set_audio(audioclip)
 clip.write_videofile('out/moviepy_video_test.mp4', fps=CLIP_FPS)
