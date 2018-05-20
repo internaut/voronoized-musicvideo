@@ -5,8 +5,8 @@ CLIP_H = 480
 SCENES = [
     {
         'video': '00156.MTS',
-        #'mode': 'original',
-        'mode': None,
+        'mode': 'original',
+        #'mode': None,
         't': (0, 24.5),
         'jump': {
             'ampl': 0.02,
@@ -15,8 +15,8 @@ SCENES = [
     },
     {
         'video': '00151.MTS',
-        #'mode': 'voronoi',
-        'mode': None,
+        'mode': 'voronoi',
+        #'mode': None,
         'base': 'original',
         't': (24.5, 58.212),
         'subclip': (5, 10),
@@ -34,8 +34,8 @@ SCENES = [
     },
     {
         'video': '00155.MTS',
-        #'mode': 'original',
-        'mode': None,
+        'mode': 'original',
+        #'mode': None,
         't': (58.212, 81.0),
         'subclip': (12, None),
         'jump': {
@@ -49,8 +49,8 @@ SCENES = [
     },
     {
         'video': 'live.3gp',
-        #'mode': 'voronoi',
-        'mode': None,
+        'mode': 'voronoi',
+        #'mode': None,
         't': (81.0, 120.5),
         'voronoi': {
             'lines_features_factor_fade': {
@@ -66,8 +66,8 @@ SCENES = [
     {
         'video': '00121.MTS',
         'subclip': (203, None),
-        #'mode': 'voronoi',
-        'mode': None,
+        'mode': 'voronoi',
+        #'mode': None,
         't': (120.5, 143),
         'voronoi': {
             'lines_features_factor': 15000,
@@ -79,8 +79,8 @@ SCENES = [
     {
         'video': '00122.MTS',
         'subclip': (8*60+5, None),
-        #'mode': 'voronoi',
-        'mode': None,
+        'mode': 'voronoi',
+        #'mode': None,
         't': (143, 2*60+38),
         'jump': {
             'ampl': 0.1,

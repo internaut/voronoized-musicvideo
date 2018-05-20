@@ -180,18 +180,20 @@ class VideoFrameGenerator:
 
     def _setup_scenes(self):
         base_size = None
-        for sc_def in self.scenes:
-            clip = VideoFileClip(os.path.join('video', sc_def['video']), audio=False)
-            subclip_markers = sc_def.get('subclip')
-            if subclip_markers:
-                clip = clip.subclip(*subclip_markers)
-            clip = clip.fx(vfx.resize, width=CLIP_W)
+        for i, sc_def in enumerate(self.scenes):
+            video_basename, _ = os.path.splitext(sc_def['video'])
+            inputfile = os.path.join('video', str(i + 1).zfill(2) + '_' + video_basename + '.mp4')
+            clip = VideoFileClip(inputfile, audio=False)
+            # subclip_markers = sc_def.get('subclip')
+            # if subclip_markers:
+            #     clip = clip.subclip(*subclip_markers)
+            # clip = clip.fx(vfx.resize, width=CLIP_W)
             if not base_size:
                 base_size = clip.size
-            elif base_size and (base_size[0] < clip.size[0] or base_size[1] < clip.size[1]):
-                clip = clip.fx(vfx.crop,
-                               x_center=clip.size[0]//2, y_center=clip.size[1]//2,
-                               width=base_size[0], height=base_size[1])
+            # elif base_size and (base_size[0] < clip.size[0] or base_size[1] < clip.size[1]):
+            #     clip = clip.fx(vfx.crop,
+            #                    x_center=clip.size[0]//2, y_center=clip.size[1]//2,
+            #                    width=base_size[0], height=base_size[1])
 
             self.clips.append(clip)
 
@@ -224,4 +226,4 @@ clip = VideoClip(lambda t: frame_gen.make_video_frame(t), duration=audioclip.dur
 #audioclip = audioclip.set_duration(clip.duration)
 
 clip = clip.set_audio(audioclip)
-clip.write_videofile('out/moviepy_video_test.mp4', fps=CLIP_FPS)
+clip.write_videofile('out/kiriloff_fortschritt_lowres.mp4', fps=CLIP_FPS)
