@@ -78,8 +78,10 @@ def get_onsets(source, samplerate, onset_thresh, onset_ampl_window=20, max_read_
 
         if read < HOP_S or (max_read_samples is not None and total_frames >= max_read_samples): break
 
-    if len(onset_max_ampl) < len(onsets):   # if the last onset amplitude is missing
-        onset_max_ampl.append(max(desc[last_onset_hop:]))
+    n_max_ampl_missing = len(onsets) - len(onset_max_ampl)
+
+    if n_max_ampl_missing > 0:   # if the last onset amplitude is missing
+        onset_max_ampl.extend([max(desc[last_onset_hop:])] * n_max_ampl_missing)
 
     onset_max_ampl = np.array(onset_max_ampl)
     onset_max_norm = np.max(onset_max_ampl) or 1

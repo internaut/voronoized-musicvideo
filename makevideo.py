@@ -4,13 +4,12 @@ import os
 import cairocffi as cairo
 import gizeh as gz
 import numpy as np
-from moviepy.editor import VideoClip, VideoFileClip, AudioFileClip, AudioClip
-import moviepy.video.fx.all as vfx
+from moviepy.editor import VideoClip, VideoFileClip, AudioFileClip, TextClip, CompositeVideoClip
 
 from voronoize import features_from_img, voronoi_from_feature_samples, lines_for_voronoi
 from graphics import draw_lines, nparray_from_surface
 from helpers import restrict_line
-from conf import SCENES, CLIP_FPS, CLIP_H, CLIP_W
+from conf import SCENES, CLIP_FPS
 
 
 np.random.seed(123)
@@ -217,13 +216,28 @@ with open('tmp/onsets.pickle', 'rb') as f:
 onset_frames = np.round(onsets / samplerate * CLIP_FPS).astype(np.int)
 onset_frame_ampl = dict(zip(onset_frames, onset_max_ampl))
 
-audioclip = AudioFileClip('audio/kiriloff-fortschritt-unmastered.wav')
+audioclip = AudioFileClip('audio/kiriloff-fortschritt-master1.wav')
+
+#duration = 30
+duration = audioclip.duration
 
 frame_gen = VideoFrameGenerator(SCENES, onset_frame_ampl)
-clip = VideoClip(lambda t: frame_gen.make_video_frame(t), duration=audioclip.duration)   # , duration=4*60+5
+gen_clip = VideoClip(lambda t: frame_gen.make_video_frame(t), duration=duration)
 
-#audioclip = AudioFileClip('audio/kiriloff-fortschritt-unmastered.wav')
-#audioclip = audioclip.set_duration(clip.duration)
+introtext = "kiriloff – fortschritt"
+#videomaterial: nico stelljes, martin schultze
+#programmierung: markus konrad (https://github.com/internaut/fortschritt)"""
+introtext_clip = TextClip(introtext,
+                          color='white',
+                          font='Menlo-Bold',
+                          fontsize=20,
+                          method='caption',
+                          size=(frame_gen.w, frame_gen.h))
 
-clip = clip.set_audio(audioclip)
-clip.write_videofile('out/kiriloff_fortschritt_lowres.mp4', fps=CLIP_FPS)
+main_clip = CompositeVideoClip([
+    gen_clip,
+    introtext_clip.set_start(0.5).set_end(6.5).crossfadein(0.5).crossfadeout(0.5)
+])
+
+main_clip = main_clip.set_audio(audioclip).set_duration(gen_clip.duration)
+main_clip.write_videofile('out/kiriloff_fortschritt_lowres.mp4', fps=CLIP_FPS)

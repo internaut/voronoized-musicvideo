@@ -7,7 +7,7 @@ SCENES = [
         'video': '00156.MTS',
         'mode': 'original',
         #'mode': None,
-        't': (0, 24.5),
+        't': (0, 25.089),
         'jump': {
             'ampl': 0.02,
             'by_random': 20,
@@ -18,7 +18,7 @@ SCENES = [
         'mode': 'voronoi',
         #'mode': None,
         'base': 'original',
-        't': (24.5, 58.212),
+        't': (25.089, 58.5),
         'subclip': (5, 10),
         'jump': {
             'ampl': 0.05,
@@ -36,26 +36,26 @@ SCENES = [
         'video': '00155.MTS',
         'mode': 'original',
         #'mode': None,
-        't': (58.212, 81.0),
+        't': (58.5, 82.0),
         'subclip': (12, None),
         'jump': {
             'ampl': 0.1,
             'by_random': 8,
         },
         'fade': {
-            'start_t': 79.0,
-            'end_t': 81.0,
+            'start_t': 80.0,
+            'end_t': 82.0,
         }
     },
     {
         'video': 'live.3gp',
         'mode': 'voronoi',
         #'mode': None,
-        't': (81.0, 120.5),
+        't': (82.0, 120.01),
         'voronoi': {
             'lines_features_factor_fade': {
                 'from_to': (2000, 15000),
-                'start_t': 81.0,
+                'start_t': 82.0,
                 'end_t': 101.0
             },
             'lines_initial_alpha_factor': 8.0,
@@ -68,7 +68,7 @@ SCENES = [
         'subclip': (203, None),
         'mode': 'voronoi',
         #'mode': None,
-        't': (120.5, 143),
+        't': (120.01, 143.449),
         'voronoi': {
             'lines_features_factor': 15000,
             'lines_initial_alpha_factor': 8.0,
@@ -81,14 +81,14 @@ SCENES = [
         'subclip': (8*60+5, None),
         'mode': 'voronoi',
         #'mode': None,
-        't': (143, 2*60+38),
+        't': (143.449, 2*60+38.523),
         'jump': {
             'ampl': 0.1,
             'by_random': 8,
         },
         'fade': {
             'start_t': 2*60+36,
-            'end_t': 2*60+38.5,
+            'end_t': 2*60+38.523,
             'color': 'white',
         },
         'voronoi': {
@@ -102,9 +102,9 @@ SCENES = [
         'video': '00160.MTS',
         'mode': 'voronoi',
         'base': (1, 1, 1),
-        't': (2*60+38.5, 2*60+58.5),
+        't': (2*60+38.523, 2*60+58.5),
         'voronoi': {
-            'color': (0, 0, 0),
+#            'color': (0, 0, 0),
             'lines_features_factor': 7500,
             'lines_initial_alpha_factor': 8.0,
             'lines_alpha_decay_basefactor': 0.025,
@@ -116,7 +116,7 @@ SCENES = [
         'mode': 'voronoi',
 #        'mode': None,
         'base': (1, 1, 1),
-        't': (2*60+58.5, 3*60+42.8),
+        't': (2*60+58.5, 3*60+43.48),
         'subclip': (5, 10),
         'jump': {
             'ampl': 0.05,
@@ -134,7 +134,7 @@ SCENES = [
         'video': 'live.3gp',
         'mode': 'voronoi',
         'base': (1, 1, 1),
-        't': (3*60+42.8, 4*60+5),
+        't': (3*60+43.48, 4*60+5.365),
         'voronoi': {
 #            'color': (0, 0, 0),
             'lines_features_factor': 10000,
@@ -143,8 +143,8 @@ SCENES = [
             'features_where': 255
         },
         'fade': {
-            'start_t': 4*60+4,
-            'end_t': 4*60+5,
+            'start_t': 4*60+4.365,
+            'end_t': 4*60+5.365,
             'color': 'black',
         },
     },
@@ -153,7 +153,7 @@ SCENES = [
         'subclip': (17, None),
         'mode': 'voronoi',
         'base': 'bin',
-        't': (4*60+5, 5),
+        't': (4*60+5.365, 5),
         'jump': {
             'ampl': 0.5,
             'by_random': 8,
