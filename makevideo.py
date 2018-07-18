@@ -1,3 +1,10 @@
+"""
+Main video rendering script.
+
+2018, Markus Konrad <post@mkonrad.net>
+"""
+
+import sys
 import pickle
 import os
 
@@ -10,6 +17,16 @@ from voronoize import features_from_img, voronoi_from_feature_samples, lines_for
 from graphics import draw_lines, nparray_from_surface
 from helpers import restrict_line
 from conf import SCENES, CLIP_FPS
+
+
+INPUT_AUDIO = 'audio/kiriloff-fortschritt-master2.wav'
+INPUT_ONSETS = 'tmp/onsets.pickle'
+OUTPUT_VIDEO = 'out/kiriloff_fortschritt.mp4'
+
+if len(sys.argv) >= 2:
+    override_duration = int(sys.argv[1])
+else:
+    override_duration = None
 
 
 np.random.seed(123)
@@ -208,7 +225,7 @@ class VideoFrameGenerator:
                 break
 
 
-with open('tmp/onsets.pickle', 'rb') as f:
+with open(INPUT_ONSETS, 'rb') as f:
     samplerate, onsets, onset_max_ampl, _ = pickle.load(f)
     assert len(onsets) == len(onset_max_ampl)
 
@@ -216,10 +233,16 @@ with open('tmp/onsets.pickle', 'rb') as f:
 onset_frames = np.round(onsets / samplerate * CLIP_FPS).astype(np.int)
 onset_frame_ampl = dict(zip(onset_frames, onset_max_ampl))
 
-audioclip = AudioFileClip('audio/kiriloff-fortschritt-master1.wav')
+audioclip = AudioFileClip(INPUT_AUDIO)
 
-#duration = 30
-duration = audioclip.duration
+if override_duration:
+    duration = override_duration
+else:
+    duration = audioclip.duration
+
+print('will generate %d sec. of video' % duration)
+print('using audio %s' % INPUT_AUDIO)
+print('using onsets %s' % INPUT_ONSETS)
 
 frame_gen = VideoFrameGenerator(SCENES, onset_frame_ampl)
 gen_clip = VideoClip(lambda t: frame_gen.make_video_frame(t), duration=duration)
@@ -240,4 +263,4 @@ main_clip = CompositeVideoClip([
 ])
 
 main_clip = main_clip.set_audio(audioclip).set_duration(gen_clip.duration)
-main_clip.write_videofile('out/kiriloff_fortschritt_lowres.mp4', fps=CLIP_FPS)
+main_clip.write_videofile(OUTPUT_VIDEO, fps=CLIP_FPS)

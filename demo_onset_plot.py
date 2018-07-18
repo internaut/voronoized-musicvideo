@@ -1,4 +1,9 @@
-#! /usr/bin/env python
+"""
+Demo for finding onsets in audio. Shows a plot of the found onsets.
+Copied from https://github.com/aubio/aubio/blob/master/python/demos/demo_onset_plot.py and modified.
+
+2018, Markus Konrad <post@mkonrad.net>
+"""
 
 import sys
 from aubio import onset, source

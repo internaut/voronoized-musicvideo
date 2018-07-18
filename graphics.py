@@ -1,8 +1,21 @@
+"""
+Graphics utility functions.
+
+2018, Markus Konrad <post@mkonrad.net>
+"""
+
 import numpy as np
 import gizeh as gz
 
 
 def draw_lines(ctx, ab_lines, stroke, stroke_width=1):
+    """
+    Draw many straight lines at once using cairo.
+    :param ctx: cairo drawing context
+    :param ab_lines: array with (a, b) tuples where a and b are the two end points of a straight line
+    :param stroke: stroke to use for drawing each line (can be RGB(A) tuple, gz.ColorGradient or gz.ImagePattern
+    :param stroke_width: stroke width
+    """
     ctx.set_line_width(stroke_width)
 
     if isinstance(stroke, gz.ColorGradient):

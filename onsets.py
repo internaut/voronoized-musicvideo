@@ -1,5 +1,9 @@
 """
+Find onsets in audio and save them as pickle file.
+
 Taken and adapted from https://github.com/aubio/aubio/blob/master/python/demos/demo_onset_plot.py
+
+2018, Markus Konrad <post@mkonrad.net>
 """
 
 import sys

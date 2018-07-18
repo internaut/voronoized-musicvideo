@@ -1,7 +1,24 @@
-CLIP_FPS = 24
-CLIP_W = 640
-CLIP_H = 480
+"""
+Common configuration
 
+2018, Markus Konrad <post@mkonrad.net>
+"""
+
+CLIP_FPS = 25
+#CLIP_W = 640
+#CLIP_H = 480
+CLIP_W = 1920
+CLIP_H = 1080
+
+# scene definitions used in video_preproc.py and makevideo.py
+# chronological order of scenes
+# each with dict of settings:
+# - video: video file to use
+# - mode: "original" or "voronoi" (or None to show only black frames)
+# - base: underlying frame ("original", "bin" or color tuple)
+# - t: time in sec. interval the scene is shown
+# - jump: jump at onset amplitude to frames within scene
+# - voronoi: voronoi cells rendering configuration
 SCENES = [
     {
         'video': '00156.MTS',
