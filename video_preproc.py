@@ -23,6 +23,7 @@ for i, scene in enumerate(SCENES):
     outputfile = os.path.join('video', str(i+1).zfill(2) + '_' + video_basename + '.mp4')
 
     clip = VideoFileClip(inputfile, audio=False, fps_source='fps')
+    orig_clip_size = clip.size
     subclip_markers = scene.get('subclip')
     if subclip_markers:
         clip = clip.subclip(*subclip_markers)
@@ -47,7 +48,7 @@ for i, scene in enumerate(SCENES):
 
     print('[%d/%d] converting %s -> %s (%dx%d w/ %d fps -> %dx%d w/ %d fps | subclip: %d | resize: %d | crop: %d)'
           % ((i+1), len(SCENES), inputfile, outputfile,
-             clip.size[0], clip.size[1], clip.fps,
+             orig_clip_size[0], orig_clip_size[1], clip.fps,
              base_size[0], base_size[1], CLIP_FPS,
              apply_subclip, apply_resize, apply_crop))
 

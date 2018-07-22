@@ -4,11 +4,17 @@ Common configuration
 2018, Markus Konrad <post@mkonrad.net>
 """
 
+import sys
+
 CLIP_FPS = 25
-#CLIP_W = 640
-#CLIP_H = 480
-CLIP_W = 1920
-CLIP_H = 1080
+
+if len(sys.argv) > 1 and sys.argv[1] == 'lowres':
+    CLIP_W = 640
+    CLIP_H = 360
+else:
+    CLIP_W = 1920
+    CLIP_H = 1080
+
 
 # scene definitions used in video_preproc.py and makevideo.py
 # chronological order of scenes
@@ -22,19 +28,27 @@ CLIP_H = 1080
 SCENES = [
     {
         'video': '00156.MTS',
-        'mode': 'original',
+        'mode': 'voronoi',
+        #'mode': 'original',
         #'mode': None,
         't': (0, 25.089),
         'jump': {
-            'ampl': 0.02,
+            'ampl': 0.06,
             'by_random': 20,
+        },
+        'voronoi': {
+#            'color': (0, 0, 0),
+            'lines_features_factor': 20000,
+            'lines_initial_alpha_factor': 8.0,
+            'lines_alpha_decay_basefactor': 0.01,
+            'features_where': 0
         }
     },
     {
         'video': '00151.MTS',
         'mode': 'voronoi',
         #'mode': None,
-        'base': 'original',
+        #'base': 'original',
         't': (25.089, 58.5),
         'subclip': (5, 10),
         'jump': {
@@ -43,7 +57,7 @@ SCENES = [
         },
         'voronoi': {
 #            'color': (0, 0, 0),
-            'lines_features_factor': 10000,
+            'lines_features_factor': 17500,
             'lines_initial_alpha_factor': 8.0,
             'lines_alpha_decay_basefactor': 0.01,
             'features_where': 0
@@ -51,18 +65,26 @@ SCENES = [
     },
     {
         'video': '00155.MTS',
-        'mode': 'original',
+        'mode': 'voronoi',
+        #'mode': 'original',
         #'mode': None,
         't': (58.5, 82.0),
         'subclip': (12, None),
         'jump': {
-            'ampl': 0.1,
+            'ampl': 0.2,
             'by_random': 8,
         },
         'fade': {
             'start_t': 80.0,
             'end_t': 82.0,
-        }
+        },
+        'voronoi': {
+#            'color': (0, 0, 0),
+            'lines_features_factor': 10000,
+            'lines_initial_alpha_factor': 8.0,
+            'lines_alpha_decay_basefactor': 0.01,
+            'features_where': 0
+        },
     },
     {
         'video': 'live.3gp',
