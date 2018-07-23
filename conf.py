@@ -42,7 +42,11 @@ SCENES = [
             'lines_initial_alpha_factor': 8.0,
             'lines_alpha_decay_basefactor': 0.01,
             'features_where': 0
-        }
+        },
+        'fade': {
+            'start_t': 23.0,
+            'end_t': 25.089,
+        },
     },
     {
         'video': '00151.MTS',
