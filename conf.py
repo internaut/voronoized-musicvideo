@@ -53,12 +53,26 @@ SCENES = [
         'mode': 'voronoi',
         #'mode': None,
         #'base': 'original',
-        't': (25.089, 58.5),
+        't': (25.089, 31),
         'subclip': (5, 10),
         'jump': {
             'ampl': 0.05,
             'to': 0,
         },
+        'voronoi': {
+#            'color': (0, 0, 0),
+            'lines_features_factor': 17500,
+            'lines_initial_alpha_factor': 8.0,
+            'lines_alpha_decay_basefactor': 0.01,
+            'features_where': 0
+        },
+    },
+    {
+        'video': '00151.MTS',
+        'mode': 'voronoi',
+        #'mode': None,
+        #'base': 'original',
+        't': (31, 58.5),
         'voronoi': {
 #            'color': (0, 0, 0),
             'lines_features_factor': 17500,
