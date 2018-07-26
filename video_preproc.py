@@ -2,6 +2,8 @@
 Video preprocessing script.
 Takes raw videos from ./video/raw and preprocesses them according to the SCENES definition from conf.py.
 
+Run as: video_preproc.py [lowres]
+
 2018, Markus Konrad <post@mkonrad.net>
 """
 

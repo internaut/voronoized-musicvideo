@@ -53,7 +53,7 @@ SCENES = [
         'mode': 'voronoi',
         #'mode': None,
         #'base': 'original',
-        't': (25.089, 31),
+        't': (25.089, 31.5),
         'subclip': (5, 10),
         'jump': {
             'ampl': 0.05,
@@ -72,7 +72,7 @@ SCENES = [
         'mode': 'voronoi',
         #'mode': None,
         #'base': 'original',
-        't': (31, 58.5),
+        't': (31.5, 58.5),
         'voronoi': {
 #            'color': (0, 0, 0),
             'lines_features_factor': 17500,

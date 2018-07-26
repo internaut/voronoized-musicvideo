@@ -1,6 +1,8 @@
 """
 Main video rendering script.
 
+Run as: makevideo.py [clip duration]
+
 2018, Markus Konrad <post@mkonrad.net>
 """
 
