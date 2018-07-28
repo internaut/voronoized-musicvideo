@@ -3,3 +3,14 @@ audio/kiriloff-fortschritt-master2.wav filter=lfs diff=lfs merge=lfs -text
 audio/kiriloff-fortschritt-unmastered.wav filter=lfs diff=lfs merge=lfs -text
 out/kiriloff_fortschritt.mp4 filter=lfs diff=lfs merge=lfs -text
 out/kiriloff_fortschritt_lowres.mp4 filter=lfs diff=lfs merge=lfs -text
+video/01_00156.mp4 filter=lfs diff=lfs merge=lfs -text
+video/08_00160.mp4 filter=lfs diff=lfs merge=lfs -text
+video/09_00151.mp4 filter=lfs diff=lfs merge=lfs -text
+video/11_00155.mp4 filter=lfs diff=lfs merge=lfs -text
+video/02_00151.mp4 filter=lfs diff=lfs merge=lfs -text
+video/03_00151.mp4 filter=lfs diff=lfs merge=lfs -text
+video/04_00155.mp4 filter=lfs diff=lfs merge=lfs -text
+video/05_live.mp4 filter=lfs diff=lfs merge=lfs -text
+video/06_00121.mp4 filter=lfs diff=lfs merge=lfs -text
+video/07_00122.mp4 filter=lfs diff=lfs merge=lfs -text
+video/10_live.mp4 filter=lfs diff=lfs merge=lfs -text
