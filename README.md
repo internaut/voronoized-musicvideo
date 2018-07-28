@@ -2,7 +2,7 @@
 
 July 2018, Markus Konrad (post at mkonrad dot net)
 
-A synthesized music video of the piece ["Fortschritt" from kiriloff](https://kiriloff.bandcamp.com/) programed in Python. It uses [aubio](https://aubio.org/) for *[onset detection](https://en.wikipedia.org/wiki/Onset_(audio))* in the audio signal. Input video clips are alienated by drawing [Voronoi diagrams](https://en.wikipedia.org/wiki/Voronoi_diagram) derived from a sample of feature points from a [binarized frame](https://en.wikipedia.org/wiki/Binary_image) of the input clip. Video rendering is done with [MoviePy](https://zulko.github.io/moviepy/) and synthetic frame generation uses [Gizeh](https://github.com/Zulko/gizeh) and [cairocffi](https://cairocffi.readthedocs.io/en/stable/). See "Further explanation" section.
+A synthesized music video of the piece ["Fortschritt" from kiriloff](https://kiriloff.bandcamp.com/) programmed in Python. It uses [aubio](https://aubio.org/) for *[onset detection](https://en.wikipedia.org/wiki/Onset_(audio))* in the audio signal. Input video clips are alienated by drawing [Voronoi diagrams](https://en.wikipedia.org/wiki/Voronoi_diagram) derived from a sample of feature points from a [binarized frame](https://en.wikipedia.org/wiki/Binary_image) of the input clip. Video rendering is done with [MoviePy](https://zulko.github.io/moviepy/) and synthetic frame generation uses [Gizeh](https://github.com/Zulko/gizeh) and [cairocffi](https://cairocffi.readthedocs.io/en/stable/). See "Further explanation" section.
 
 See the [final result at YouTube]().
 
@@ -49,7 +49,7 @@ We have an original input clip frame *C* at a certain time *t*:
 
 Additionally, we have the onset amplitude *O* at *t*. The onset amplitude is the "strength" of a detected note at this time. For example, you can see in this image the detected onsets as red bars and the amplitude as green line. Both are combined by finding the maximum amplitude between to onsets to get the onset amplitude.
 
-<img src="demo_onsets.png" alt="onsets" width="640">
+<img src="readme_imgs/demo_onsets.png" alt="onsets" width="640">
 
 ### 2. Binarization and feature generation
 
