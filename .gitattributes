@@ -1,3 +1,5 @@
 audio/kiriloff-fortschritt-master1.wav filter=lfs diff=lfs merge=lfs -text
 audio/kiriloff-fortschritt-master2.wav filter=lfs diff=lfs merge=lfs -text
 audio/kiriloff-fortschritt-unmastered.wav filter=lfs diff=lfs merge=lfs -text
+out/kiriloff_fortschritt.mp4 filter=lfs diff=lfs merge=lfs -text
+out/kiriloff_fortschritt_lowres.mp4 filter=lfs diff=lfs merge=lfs -text
