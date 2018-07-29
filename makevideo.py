@@ -9,6 +9,7 @@ Run as: makevideo.py [clip duration]
 import sys
 import pickle
 import os
+import math
 
 import cairocffi as cairo
 import gizeh as gz
@@ -17,7 +18,7 @@ from moviepy.editor import VideoClip, VideoFileClip, AudioFileClip, TextClip, Co
 
 from voronoize import features_from_img, voronoi_from_feature_samples, lines_for_voronoi
 from helpers import restrict_line, draw_lines, nparray_from_surface
-from conf import SCENES, CLIP_FPS
+from conf import SCENES, CLIP_FPS, STROKE_WIDTH
 
 
 INPUT_AUDIO = 'audio/kiriloff-fortschritt-master2.wav'
@@ -28,10 +29,20 @@ OUTPUT_VIDEO = 'out/kiriloff_fortschritt.mp4'
 # parse one optional parameter: video duration up to which the video should be rendered
 
 if len(sys.argv) >= 2:
-    override_duration = int(sys.argv[1])
+    try:
+        override_duration = int(sys.argv[1])
+    except ValueError:
+        override_duration = None
 else:
     override_duration = None
 
+if len(sys.argv) >= 3:
+    if ',' in sys.argv[2]:
+        override_only_scene = set(s-1 for s in map(int, sys.argv[2].split(',')))
+    else:
+        override_only_scene = {int(sys.argv[2]) - 1}
+else:
+    override_only_scene = None
 
 np.random.seed(123)
 
@@ -55,6 +66,7 @@ class VideoFrameGenerator:
         # initializations
         self.clips = []         # holds the input video clip for each frame
         self.cur_scene = None   # current scene definition (dict)
+        self.cur_scene_idx = None
         self.cur_clip = None    # input video clip used in current scene
         self.clip_t = 0         # current input frame time
         self.scenes = scenes    # scene definitions
@@ -82,7 +94,8 @@ class VideoFrameGenerator:
         self._update_cur_scene(t)
 
         # shortcut if scene should not be rendered
-        if self.cur_scene['mode'] is None:
+        if self.cur_scene['mode'] is None or \
+                (override_only_scene is not None and self.cur_scene_idx not in override_only_scene):
             return self.blank_frame
 
         # get current frame's onset amplitude
@@ -183,11 +196,25 @@ class VideoFrameGenerator:
             surface_data = np.frombuffer(self.surface.get_data(), np.uint8)
             surface_data += surface_base.flatten()
             self.surface.mark_dirty()
+
+            base_color = None
         else:   # solid color background
             if isinstance(base, tuple):
-                base_color = base + (1, )
+                base_color = base
             else:
-                base_color = (0, 0, 0, 1)
+                base_color = (0, 0, 0)
+
+            alternating_base = self.cur_scene.get('alternating_base', None)
+            if alternating_base:
+                base_color = np.array(base_color)
+                alt_base_freq = alternating_base['freq']
+                alt_base_col = np.array(alternating_base['color_b'])
+                assert len(base_color) == len(alt_base_col)
+                alt_base_y = (1 + math.sin(alt_base_freq * self.clip_t)) / 2
+                base_color = alt_base_y * base_color + (1-alt_base_y) * alt_base_col
+                base_color = tuple(base_color)
+
+            base_color = base_color + (1, )
 
             self.ctx.set_source_rgba(*base_color)
             self.ctx.paint()
@@ -221,13 +248,33 @@ class VideoFrameGenerator:
         # update the current "alive" voronoi lines and their transparency and draw them to the input frame
         self._update_voronoi_lines(in_frame)
 
-        return nparray_from_surface(self.surface)
+        out_frame = nparray_from_surface(self.surface)
+
+        posteffect_opts = self.cur_scene.get('posteffect_destroy', None)
+        if posteffect_opts and base_color is not None:
+            # works only with monochrome bg:
+            #line_px_mask = out_frame[:, :, 0] != int(base_color[0] * 255)
+            line_px_mask = ~np.isclose(out_frame[:, :, 0], int(base_color[0] * 255), atol=1)
+            line_pixels = out_frame[line_px_mask]
+            px_destroy_factor = posteffect_opts['offset']\
+                                + posteffect_opts['ampl'] * (1 + math.sin(posteffect_opts['freq'] * self.clip_t)) / 2
+            out_frame[line_px_mask] = line_pixels * px_destroy_factor
+
+        return out_frame
 
     def _update_voronoi_lines(self, baseframe):
         """
         update the current "alive" voronoi lines and their transparency and draw them to the input frame
         :param baseframe: frame on which the voronoi lines will be drawn
         """
+
+        # def apply_alternating_color(color, t, opts):
+        #     color = np.array(color)
+        #     y = opts['offset'] + opts['ampl'] * (1 + math.sin(opts['freq'] * t)) / 2
+        #     color = y * color
+        #     if opts['clip']:
+        #         color = np.clip(color, 0, 1)
+        #     return tuple(color)
 
         # go through all the current sets of voronoi lines, construct the a-b-lines for the input frame,
         # set the color and draw the lines
@@ -246,15 +293,28 @@ class VideoFrameGenerator:
 
                 # get the color setting
                 color = self.cur_scene['voronoi'].get('color', None)
+                # alternating_color_opts = self.cur_scene['voronoi'].get('alternating_color', None)
                 if color:   # add current alpha value for solid color
+                    # if alternating_color_opts:
+                    #     color = apply_alternating_color(color, self.clip_t, alternating_color_opts)
+
                     stroke = color + (lines_alpha, )
                 else:       # make a color gradient between the pixels at the respective end points of the line
-                    pix_a = tuple(list(baseframe[ay, ax, :] / 255) + [lines_alpha])
-                    pix_b = tuple(list(baseframe[by, bx, :] / 255) + [lines_alpha])
+                    pix_a = tuple(baseframe[ay, ax, :] / 255)
+                    pix_b = tuple(baseframe[by, bx, :] / 255)
+                    # if alternating_color_opts:
+                    #     pix_a = apply_alternating_color(pix_a, self.clip_t, alternating_color_opts)
+                    #     pix_b = apply_alternating_color(pix_b, self.clip_t, alternating_color_opts)
+                    # else:
+                    #     pix_a = tuple(pix_a)
+                    #     pix_b = tuple(pix_b)
+
+                    pix_a = pix_a + (lines_alpha,)
+                    pix_b = pix_b + (lines_alpha,)
                     stroke = gz.ColorGradient('linear', ((0, pix_a), (1, pix_b)), a, b)
 
-                # drawt the lines
-                draw_lines(self.ctx, [(a, b)], stroke)
+                # draw the lines
+                draw_lines(self.ctx, [(a, b)], stroke, stroke_width=STROKE_WIDTH)
 
             # decrease line transparency
             lines_alpha -= lines_alpha_decay
@@ -295,6 +355,7 @@ class VideoFrameGenerator:
             scene_t = sc_def['t']
             if scene_t[0] <= t < scene_t[1] and self.cur_clip is not self.clips[i]:
                 self.cur_scene = sc_def
+                self.cur_scene_idx = i
                 self.cur_clip = self.clips[i]
                 self.clip_t = 0
                 break
@@ -318,6 +379,8 @@ else:
     duration = audioclip.duration
 
 print('will generate %d sec. of video' % duration)
+if override_only_scene:
+    print('will only render scenes %s' % (','.join(map(str, [s+1 for s in override_only_scene]))))
 print('using audio %s' % INPUT_AUDIO)
 print('using onsets %s' % INPUT_ONSETS)
 
@@ -330,7 +393,7 @@ introtext = "kiriloff – fortschritt"
 introtext_clip = TextClip(introtext,
                           color='white',
                           font='Menlo-Bold',
-                          fontsize=20,
+                          fontsize=20 if gen_clip.size[0] <= 640 else 45,
                           method='caption',
                           size=(frame_gen.w, frame_gen.h))
 

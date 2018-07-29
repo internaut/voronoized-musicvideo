@@ -16,6 +16,9 @@ else:
     CLIP_H = 1080
 
 
+STROKE_WIDTH = 3
+
+
 # scene definitions used in video_preproc.py and makevideo.py
 # chronological order of scenes
 # each with dict of settings:
@@ -206,21 +209,28 @@ SCENES = [
         },
     },
     {
-        'video': '00155.MTS',
-        'subclip': (17, None),
+        'video': 'live.3gp',
         'mode': 'voronoi',
-        'base': 'bin',
-        't': (4*60+5.365, 5),
-        'jump': {
-            'ampl': 0.5,
-            'by_random': 8,
+        'base': (0, 0, 0),
+        'alternating_base': {
+            'freq': 1,
+            'color_b': (1, 1, 1),
         },
+        't': (4*60+5.365, 5*60),
+        # 'jump': {
+        #     'ampl': 0.5,
+        #     'by_random': 8,
+        # },
         'voronoi': {
-#            'color': (0, 0, 0),
             'lines_features_factor': 5000,
             'lines_initial_alpha_factor': 8.0,
             'lines_alpha_decay_basefactor': 0.025,
-            'features_where': 0
+            'features_where': 255
+        },
+        'posteffect_destroy': {
+            'freq': 1+2/3,
+            'ampl': 2,
+            'offset': -1
         },
     },
 ]
