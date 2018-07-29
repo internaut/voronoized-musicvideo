@@ -4,7 +4,9 @@ July 2018, Markus Konrad (post at mkonrad dot net)
 
 A synthesized music video of the piece ["Fortschritt" from kiriloff](https://kiriloff.bandcamp.com/) programmed in Python. It uses [aubio](https://aubio.org/) for *[onset detection](https://en.wikipedia.org/wiki/Onset_(audio))* in the audio signal. Input video clips are alienated by drawing [Voronoi diagrams](https://en.wikipedia.org/wiki/Voronoi_diagram) derived from a sample of feature points from a [binarized frame](https://en.wikipedia.org/wiki/Binary_image) of the input clip. Video rendering is done with [MoviePy](https://zulko.github.io/moviepy/) and synthetic frame generation uses [Gizeh](https://github.com/Zulko/gizeh) and [cairocffi](https://cairocffi.readthedocs.io/en/stable/). See "Further explanation" section.
 
-See the [final result at YouTube]().
+See the [final result at YouTube](https://www.youtube.com/watch?v=iBFQ0RlnyfU).
+
+<img src="readme_imgs/videostill.jpg" alt="onsets" width="640">
 
 **Please note:** In case you want to clone this repository, you need to install the git extension for large files, *[git-lfs](https://git-lfs.github.com/).* This is because of the large video files included in the repository.
 
