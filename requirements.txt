@@ -1,4 +1,4 @@
-aubio==0.4.6
+aubio==0.4.9
 cairocffi==0.8.1
 certifi==2018.4.16
 cffi==1.11.5
