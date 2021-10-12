@@ -12,7 +12,7 @@ kiwisolver==1.0.1
 matplotlib==2.2.2
 moviepy==0.2.3.5
 numpy==1.14.5
-opencv-python==3.4.2.16
+opencv-python==3.4.7.28
 Pillow==5.2.0
 pycparser==2.18
 pyparsing==2.2.0
